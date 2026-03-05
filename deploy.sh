@@ -10,7 +10,7 @@ echo "=========================================="
 
 # 配置
 PROJECT_DIR="/opt/ihomeguard"
-REGISTRY="registry.cn-hangzhou.aliyuncs.com"
+REGISTRY="crpi-2paq7xeeayrc2fy6.cn-zhangjiakou.personal.cr.aliyuncs.com"
 NAMESPACE="eddycheng"
 IMAGE_NAME="${REGISTRY}/${NAMESPACE}/ihomeguard:dev"
 

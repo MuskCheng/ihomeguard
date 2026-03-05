@@ -25,29 +25,43 @@ class IKuaiLocalClient:
         """登录获取会话"""
         passwd_md5 = self._md5(self.password)
         
-        resp = self.session.post(
-            f"{self.base_url}/Action/login",
-            data={
-                "username": self.username,
-                "passwd": passwd_md5,
-                "pass": "true",
-                "remember_password": "false"
-            },
-            timeout=10
-        )
-        
-        if resp.status_code == 200:
-            result = resp.json()
-            if result.get("Result") == 30000:
-                self._sess_key = self.session.cookies.get('sess_key')
-                return True
+        try:
+            login_url = f"{self.base_url}/Action/login"
+            
+            # 使用 JSON 格式登录
+            resp = self.session.post(
+                login_url,
+                json={
+                    "username": self.username,
+                    "passwd": passwd_md5
+                },
+                timeout=10
+            )
+            
+            print(f"[爱快] 登录请求: {login_url}", flush=True)
+            print(f"[爱快] 响应状态: {resp.status_code}", flush=True)
+            
+            if resp.status_code == 200:
+                result = resp.json()
+                print(f"[爱快] 响应内容: {result}", flush=True)
+                # 爱快成功码是 10000
+                if result.get("Result") in [10000, 30000]:
+                    self._sess_key = self.session.cookies.get('sess_key') or "logged_in"
+                    print(f"[爱快] 登录成功", flush=True)
+                    return True
+                else:
+                    print(f"[爱快] 登录失败: {result.get('ErrMsg', '未知错误')}", flush=True)
+            else:
+                print(f"[爱快] 登录请求失败: HTTP {resp.status_code}", flush=True)
+        except Exception as e:
+            print(f"[爱快] 登录异常: {e}", flush=True)
         return False
     
     def _ensure_login(self):
         """确保已登录"""
-        if not self._sess_key:
-            if not self.login():
-                raise Exception("登录失败")
+        # 每次调用前重新登录以确保会话有效
+        if not self.login():
+            raise Exception("登录失败")
     
     def _call(self, func_name: str, action: str, param: dict = None) -> dict:
         """调用 API"""
@@ -59,14 +73,22 @@ class IKuaiLocalClient:
             "param": param or {}
         }
         
+        print(f"[爱快] API调用: {func_name}.{action}, body={body}", flush=True)
+        
+        # 爱快 API 端点是 /Action/call
         resp = self.session.post(
-            f"{self.base_url}/Action/login",
+            f"{self.base_url}/Action/call",
             json=body,
             timeout=30
         )
         
+        print(f"[爱快] API响应状态: {resp.status_code}", flush=True)
+        
         if resp.status_code == 200:
-            return resp.json()
+            result = resp.json()
+            print(f"[爱快] API响应: {result}", flush=True)
+            return result
+        print(f"[爱快] API失败: HTTP {resp.status_code}", flush=True)
         return {"Result": -1, "ErrMsg": f"HTTP {resp.status_code}"}
     
     # ========== 系统信息 ==========
@@ -85,21 +107,30 @@ class IKuaiLocalClient:
     
     def get_online_devices(self, limit: int = 100, skip: int = 0) -> List[dict]:
         """获取在线设备列表"""
-        result = self._call("online", "show", {
+        result = self._call("monitor_lanip", "show", {
             "TYPE": "data,total",
             "limit": f"{skip},{limit}",
-            "ORDER_BY": "ip_addr",
-            "ORDER": ""
+            "ORDER_BY": "ip_addr_int",
+            "ORDER": "",
+            "orderType": "IP"
         })
         
-        if result.get("Result") == 30000:
-            return result.get("Data", {}).get("data", [])
+        print(f"[爱快] get_online_devices 结果: {result}", flush=True)
+        
+        if result.get("Result") in [10000, 30000]:
+            data = result.get("Data", {})
+            if isinstance(data, dict):
+                devices = data.get("data", [])
+            else:
+                devices = data if isinstance(data, list) else []
+            print(f"[爱快] 在线设备数: {len(devices)}", flush=True)
+            return devices
         return []
     
     def get_online_count(self) -> int:
         """获取在线设备数量"""
-        result = self._call("online", "show", {"TYPE": "total"})
-        if result.get("Result") == 30000:
+        result = self._call("monitor_lanip", "show", {"TYPE": "total", "orderType": "IP"})
+        if result.get("Result") in [10000, 30000]:
             return result.get("Data", {}).get("total", 0)
         return 0
     

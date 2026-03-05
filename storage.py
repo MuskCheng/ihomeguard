@@ -4,7 +4,21 @@ import os
 from datetime import datetime
 from contextlib import contextmanager
 
-DB_PATH = os.environ.get('DB_PATH', 'data/ihomeguard.db')
+# 使用 config 模块中的 DATA_DIR
+def _get_db_path():
+    """获取数据库路径"""
+    env_path = os.environ.get('DB_PATH')
+    if env_path:
+        return env_path
+    
+    # 延迟导入避免循环依赖
+    try:
+        import config
+        return os.path.join(config.DATA_DIR, 'ihomeguard.db')
+    except:
+        return 'data/ihomeguard.db'
+
+DB_PATH = _get_db_path()
 
 
 @contextmanager
@@ -40,6 +54,7 @@ def init_db():
                 is_trusted INTEGER DEFAULT 0,
                 first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_seen DATETIME,
+                total_online_minutes INTEGER DEFAULT 0,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             
@@ -90,12 +105,25 @@ def init_db():
                 happened_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             
+            -- 在线会话表（精确追踪在线时长）
+            CREATE TABLE IF NOT EXISTS online_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                mac TEXT NOT NULL,
+                ip TEXT,
+                online_at DATETIME NOT NULL,
+                offline_at DATETIME,
+                duration_minutes INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            
             -- 索引
             CREATE INDEX IF NOT EXISTS idx_devices_mac ON devices(mac);
             CREATE INDEX IF NOT EXISTS idx_online_records_mac ON online_records(mac);
             CREATE INDEX IF NOT EXISTS idx_online_records_time ON online_records(recorded_at);
             CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(date);
             CREATE INDEX IF NOT EXISTS idx_device_events_mac ON device_events(mac);
+            CREATE INDEX IF NOT EXISTS idx_online_sessions_mac ON online_sessions(mac);
+            CREATE INDEX IF NOT EXISTS idx_online_sessions_online ON online_sessions(online_at);
         ''')
 
 
@@ -279,6 +307,99 @@ def get_events_by_date(date: str, limit: int = 100) -> list:
             WHERE date(happened_at) = ?
             ORDER BY happened_at DESC LIMIT ?
         ''', (date, limit))]
+
+
+# ========== 在线会话操作 ==========
+
+def start_online_session(mac: str, ip: str):
+    """开始在线会话"""
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with get_db() as conn:
+        # 检查是否有未关闭的会话
+        existing = conn.execute('''
+            SELECT id FROM online_sessions 
+            WHERE mac = ? AND offline_at IS NULL
+        ''', (mac.upper(),)).fetchone()
+        
+        if not existing:
+            conn.execute('''
+                INSERT INTO online_sessions (mac, ip, online_at)
+                VALUES (?, ?, ?)
+            ''', (mac.upper(), ip, now))
+
+
+def end_online_session(mac: str):
+    """结束在线会话"""
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with get_db() as conn:
+        # 找到未关闭的会话
+        session = conn.execute('''
+            SELECT id, online_at FROM online_sessions 
+            WHERE mac = ? AND offline_at IS NULL
+        ''', (mac.upper(),)).fetchone()
+        
+        if session:
+            online_at = datetime.fromisoformat(session['online_at'])
+            offline_at = datetime.now()
+            duration_minutes = int((offline_at - online_at).total_seconds() / 60)
+            
+            conn.execute('''
+                UPDATE online_sessions 
+                SET offline_at = ?, duration_minutes = ?
+                WHERE id = ?
+            ''', (now, duration_minutes, session['id']))
+            
+            # 更新设备累计在线时长
+            conn.execute('''
+                UPDATE devices 
+                SET total_online_minutes = total_online_minutes + ?
+                WHERE mac = ?
+            ''', (duration_minutes, mac.upper()))
+
+
+def get_device_online_sessions(mac: str, limit: int = 50) -> list:
+    """获取设备在线会话历史"""
+    with get_db() as conn:
+        return [dict(row) for row in conn.execute('''
+            SELECT * FROM online_sessions 
+            WHERE mac = ?
+            ORDER BY online_at DESC LIMIT ?
+        ''', (mac.upper(), limit))]
+
+
+def get_device_total_online_time(mac: str) -> int:
+    """获取设备累计在线时长（分钟）"""
+    with get_db() as conn:
+        row = conn.execute('''
+            SELECT total_online_minutes FROM devices WHERE mac = ?
+        ''', (mac.upper(),)).fetchone()
+        return row['total_online_minutes'] if row else 0
+
+
+def get_today_online_time(mac: str) -> int:
+    """获取设备今日在线时长（分钟）"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    with get_db() as conn:
+        result = conn.execute('''
+            SELECT COALESCE(SUM(duration_minutes), 0) as total
+            FROM online_sessions 
+            WHERE mac = ? AND date(online_at) = ?
+        ''', (mac.upper(), today)).fetchone()
+        
+        total = result['total'] if result else 0
+        
+        # 加上当前在线时间
+        session = conn.execute('''
+            SELECT online_at FROM online_sessions 
+            WHERE mac = ? AND offline_at IS NULL
+        ''', (mac.upper(),)).fetchone()
+        
+        if session:
+            online_at = datetime.fromisoformat(session['online_at'])
+            current_minutes = int((datetime.now() - online_at).total_seconds() / 60)
+            total += current_minutes
+        
+        return total
 
 
 # ========== 设备在线时长统计 ==========

@@ -35,6 +35,37 @@ class AlerterService:
         
         return alerts
     
+    def check_offline_devices(self, current_devices: set, previous_devices: set) -> List[dict]:
+        """检测离线设备（信任设备离线告警）"""
+        alerts = []
+        
+        if not self.config.get('alert_offline', True):
+            return alerts
+        
+        # 找出离线的设备
+        offline_devices = previous_devices - current_devices
+        
+        for mac in offline_devices:
+            device = storage.get_device(mac)
+            if device and device.get('is_trusted'):
+                # 信任设备离线告警
+                alias = device.get('alias', '') or device.get('hostname', '') or mac[:8]
+                alert_id = storage.add_alert(
+                    alert_type='device_offline',
+                    severity='warning',
+                    mac=mac,
+                    message=f'信任设备离线: {alias}'
+                )
+                alerts.append({
+                    'id': alert_id,
+                    'type': 'device_offline',
+                    'mac': mac,
+                    'message': f'信任设备离线: {alias}'
+                })
+                print(f"[告警] 信任设备离线: {alias} ({mac})")
+        
+        return alerts
+    
     def _check_traffic_threshold(self, devices: List[dict]) -> List[dict]:
         """检测流量超阈值设备"""
         alerts = []

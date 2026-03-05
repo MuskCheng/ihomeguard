@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0, '..')
 from datetime import datetime, timedelta
-from services.pusher import PushMeClient
+from services.pusher import MultiPushClient
 from services.vendor import get_vendor_cached
 import storage
 
@@ -11,10 +11,7 @@ class ReporterService:
     """日报生成服务"""
     
     def __init__(self, pushme_config: dict):
-        self.pusher = PushMeClient(
-            push_key=pushme_config.get('push_key', ''),
-            api_url=pushme_config.get('api_url', 'https://push.i-i.me')
-        )
+        self.pusher = MultiPushClient(pushme_config)
         self.enabled = pushme_config.get('enabled', True)
     
     def generate_daily_report(self, date: str = None) -> dict:

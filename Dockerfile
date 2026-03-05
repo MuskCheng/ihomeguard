@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM docker.1ms.run/library/python:3.12-slim
 
 # 版本信息（默认读取 VERSION 文件，构建时可通过 --build-arg 覆盖）
 ARG VERSION=dev

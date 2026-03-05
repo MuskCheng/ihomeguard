@@ -1,26 +1,19 @@
-version: '3.8'
-
 services:
   ihomeguard:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ihomeguard:dev
+    image: crpi-2paq7xeeayrc2fy6.cn-zhangjiakou.personal.cr.aliyuncs.com/eddycheng/ihomeguard:dev
     container_name: ihomeguard
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
-      # 爱快路由器配置（推荐使用环境变量）
-      - IKUAI_URL=${IKUAI_URL:-http://192.168.1.1}
-      - IKUAI_USER=${IKUAI_USER:-admin}
-      - IKUAI_PASS=${IKUAI_PASS:-}
-      # PushMe 推送配置
-      - PUSHME_KEY=${PUSHME_KEY:-}
+      - IKUAI_URL=http://192.168.1.1
+      - IKUAI_USER=monitor
+      - IKUAI_PASS=your_password
+      - PUSHME_KEY=your_pushme_key
     volumes:
       - ./data:/app/data
       - ./config:/app/config
     ports:
-      - "${WEB_PORT:-8680}:8680"
+      - "8680:8680"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8680/api/health"]
       interval: 30s

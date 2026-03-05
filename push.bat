@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set REGISTRY=registry.cn-hangzhou.aliyuncs.com
+set REGISTRY=crpi-2paq7xeeayrc2fy6.cn-zhangjiakou.personal.cr.aliyuncs.com
 set NAMESPACE=eddycheng
 set USERNAME=EddyCheng
 

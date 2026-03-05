@@ -7,14 +7,17 @@ import storage
 from clients.ikuai_local import IKuaiLocalClient
 from services.monitor import MonitorService
 from services.reporter import ReporterService
-from services.vendor import VendorLookup
+from services.vendor import get_vendor_cached
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+
+# 修改 Jinja2 定界符，避免与 Vue.js 冲突
+app.jinja_env.variable_start_string = '{['
+app.jinja_env.variable_end_string = ']}'
 
 # 全局服务实例
 _monitor = None
 _pusher = None
-_vendor = VendorLookup()
 
 
 def get_monitor():
@@ -51,15 +54,23 @@ def health():
 def get_devices():
     """获取在线设备列表"""
     try:
-        status = get_monitor().get_current_status()
+        monitor = get_monitor()
+        status = monitor.get_current_status()
         devices = status.get('devices', [])
         
         # 添加厂商信息
         for d in devices:
-            d['vendor'] = _vendor.lookup(d['mac'])
+            d['vendor'] = get_vendor_cached(d['mac'])
+            # 格式化在线时长
+            minutes = d.get('today_online_minutes', 0)
+            hours = minutes // 60
+            mins = minutes % 60
+            d['today_online_formatted'] = f"{hours}h{mins}m" if hours > 0 else f"{mins}m"
         
         return jsonify({'success': True, 'devices': devices, 'count': len(devices)})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -69,7 +80,7 @@ def get_all_devices():
     try:
         devices = storage.get_all_devices()
         for d in devices:
-            d['vendor'] = _vendor.lookup(d['mac'])
+            d['vendor'] = get_vendor_cached(d['mac'])
         return jsonify({'success': True, 'devices': devices})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -190,6 +201,54 @@ def get_today_stats():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/stats/prediction')
+def get_traffic_prediction():
+    """流量趋势预测"""
+    from datetime import datetime, timedelta
+    
+    try:
+        # 获取本月已过天数
+        now = datetime.now()
+        day_of_month = now.day
+        days_in_month = 31  # 简化处理
+        
+        # 获取本月统计数据
+        start_date = now.replace(day=1).strftime('%Y-%m-%d')
+        stats = storage.get_stats_range(start_date, now.strftime('%Y-%m-%d'))
+        
+        if not stats:
+            # 使用实时数据
+            status = get_monitor().get_current_status()
+            current_upload = sum(d.get('total_upload', 0) for d in status['devices'])
+            current_download = sum(d.get('total_download', 0) for d in status['devices'])
+        else:
+            current_upload = sum(s.get('total_upload', 0) for s in stats)
+            current_download = sum(s.get('total_download', 0) for s in stats)
+        
+        # 计算日均流量
+        daily_upload = current_upload / max(day_of_month, 1)
+        daily_download = current_download / max(day_of_month, 1)
+        daily_total = daily_upload + daily_download
+        
+        # 预测本月总量
+        remaining_days = days_in_month - day_of_month
+        predicted_upload = current_upload + (daily_upload * remaining_days)
+        predicted_download = current_download + (daily_download * remaining_days)
+        predicted_total = predicted_upload + predicted_download
+        
+        return jsonify({
+            'success': True,
+            'prediction': {
+                'upload': predicted_upload,
+                'download': predicted_download,
+                'total': predicted_total,
+                'daily_avg': daily_total
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ========== 配置管理 API ==========
 
 @app.route('/api/config')
@@ -207,6 +266,9 @@ def get_config():
             },
             'pushme': {
                 'push_key': config.mask_sensitive(cfg['pushme'].get('push_key', '')),
+                'wecom_webhook': config.mask_sensitive(cfg['pushme'].get('wecom_webhook', '')),
+                'dingtalk_webhook': config.mask_sensitive(cfg['pushme'].get('dingtalk_webhook', '')),
+                'dingtalk_secret': config.mask_sensitive(cfg['pushme'].get('dingtalk_secret', '')),
                 'enabled': cfg['pushme'].get('enabled', True)
             },
             'monitor': cfg.get('monitor', {}),
@@ -230,11 +292,12 @@ def save_config():
         if 'ikuai' in data:
             cfg['ikuai'].update(data['ikuai'])
         if 'pushme' in data:
-            # 如果密码/push_key是****则保持原值
-            if data['pushme'].get('push_key') == '****':
-                data['pushme']['push_key'] = cfg['pushme'].get('push_key', '')
-            if data['pushme'].get('push_key'):  # 只更新非空值
-                cfg['pushme'].update(data['pushme'])
+            # 如果是****则保持原值
+            pushme_data = data['pushme']
+            for key in ['push_key', 'wecom_webhook', 'dingtalk_webhook', 'dingtalk_secret']:
+                if pushme_data.get(key) == '****' or not pushme_data.get(key):
+                    pushme_data[key] = cfg['pushme'].get(key, '')
+            cfg['pushme'].update(pushme_data)
         if 'monitor' in data:
             cfg['monitor'].update(data['monitor'])
         
@@ -255,6 +318,7 @@ def test_ikuai():
     """测试爱快连接"""
     try:
         data = request.get_json()
+        print(f"[调试] 测试爱快连接: {data}")
         client = IKuaiLocalClient(
             base_url=data.get('local_url', ''),
             username=data.get('username', ''),
@@ -263,13 +327,31 @@ def test_ikuai():
         
         if client.login():
             info = client.get_router_info()
+            
+            # 测试成功后自动保存配置
+            cfg = config.get_config()
+            print(f"[调试] 当前配置: {cfg}")
+            cfg['ikuai']['local_url'] = data.get('local_url', '')
+            cfg['ikuai']['username'] = data.get('username', '')
+            if data.get('password'):
+                cfg['ikuai']['password'] = data.get('password')
+            print(f"[调试] 保存配置到: {config.CONFIG_PATH}")
+            config.save_config(cfg)
+            print(f"[调试] 配置已保存")
+            
+            # 重新初始化服务
+            global _monitor
+            _monitor = None
+            
             return jsonify({
                 'success': True,
-                'message': f"连接成功: {info.get('name', 'iKuai Router')}"
+                'message': f"连接成功: {info.get('name', 'iKuai Router')}，配置已保存"
             })
         else:
             return jsonify({'success': False, 'message': '登录失败，请检查用户名密码'})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)})
 
 
@@ -280,14 +362,38 @@ def test_pushme():
         data = request.get_json()
         from services.pusher import PushMeClient
         
-        client = PushMeClient(push_key=data.get('push_key', ''))
+        push_key = data.get('push_key', '')
+        client = PushMeClient(push_key=push_key)
         success, msg = client.send(
             title='[s][#iHomeGuard!✅]连接测试',
             content='## ✅ 测试成功\n\niHomeGuard 推送功能正常',
             msg_type='markdown'
         )
         
-        return jsonify({'success': success, 'message': '推送成功' if success else msg})
+        if success:
+            cfg = config.get_config()
+            if push_key:
+                cfg['pushme']['push_key'] = push_key
+            config.save_config(cfg)
+        
+        return jsonify({'success': success, 'message': '推送成功，配置已保存' if success else msg})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/test/push', methods=['POST'])
+def test_push():
+    """测试推送（支持多渠道）"""
+    try:
+        data = request.get_json()
+        channel = data.get('channel', 'pushme')
+        
+        from services.pusher import MultiPushClient
+        
+        client = MultiPushClient(config.get_config()['pushme'])
+        success, msg = client.test_push(channel)
+        
+        return jsonify({'success': success, 'message': msg})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 

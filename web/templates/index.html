@@ -4,138 +4,722 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iHomeGuard - 爱快家庭网络卫士</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" type="image/png" href="/static/iHG.png">
+    <link rel="apple-touch-icon" href="/static/iHG.png">
+    <script src="/static/js/vue.min.js"></script>
+    <script src="/static/js/axios.min.js"></script>
+    <script src="/static/js/chart.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #3498db;
-            --success: #27ae60;
-            --warning: #f39c12;
-            --danger: #e74c3c;
-            --dark: #2c3e50;
-            --light: #ecf0f1;
-            --border: #ddd;
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--light); color: var(--dark); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        /* 导航 */
-        .navbar { background: var(--dark); color: white; padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .navbar h1 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
-        .navbar h1 span { font-size: 1.5rem; }
-        .nav-links { display: flex; gap: 5px; }
-        .nav-links a { color: #aaa; text-decoration: none; padding: 8px 16px; border-radius: 4px; transition: all 0.3s; }
-        .nav-links a:hover, .nav-links a.active { background: rgba(255,255,255,0.1); color: white; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* ========== 夜间模式 (默认) ========== */
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-card-hover: rgba(17, 24, 39, 0.9);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --border-color: rgba(148, 163, 184, 0.1);
+            --border-hover: rgba(6, 182, 212, 0.3);
+            --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.3);
+            --glow-purple: 0 0 20px rgba(139, 92, 246, 0.3);
+            --glow-green: 0 0 20px rgba(16, 185, 129, 0.3);
+            --gradient-primary: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            --gradient-bg: radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                           radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                           radial-gradient(ellipse at 40% 60%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-focus-bg: rgba(255, 255, 255, 0.08);
+            --table-hover: rgba(6, 182, 212, 0.05);
+            --section-title-border: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+        }
+        
+        /* ========== 日间模式 ========== */
+        :root.light-mode {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --bg-card-hover: rgba(255, 255, 255, 1);
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent-cyan: #0891b2;
+            --accent-purple: #7c3aed;
+            --accent-pink: #db2777;
+            --accent-green: #059669;
+            --accent-orange: #d97706;
+            --accent-red: #dc2626;
+            --border-color: rgba(148, 163, 184, 0.2);
+            --border-hover: rgba(8, 145, 178, 0.4);
+            --glow-cyan: 0 4px 20px rgba(8, 145, 178, 0.15);
+            --glow-purple: 0 4px 20px rgba(124, 58, 237, 0.15);
+            --glow-green: 0 4px 20px rgba(5, 150, 105, 0.15);
+            --gradient-primary: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            --gradient-bg: radial-gradient(ellipse at 20% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+                           radial-gradient(ellipse at 80% 80%, rgba(8, 145, 178, 0.08) 0%, transparent 50%),
+                           radial-gradient(ellipse at 40% 60%, rgba(219, 39, 119, 0.05) 0%, transparent 50%);
+            --input-bg: rgba(0, 0, 0, 0.03);
+            --input-focus-bg: rgba(0, 0, 0, 0.05);
+            --table-hover: rgba(8, 145, 178, 0.05);
+            --section-title-border: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background 0.4s ease, color 0.4s ease;
+        }
+        
+        /* 动态背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gradient-bg);
+            pointer-events: none;
+            z-index: -1;
+            animation: bgPulse 15s ease-in-out infinite;
+            transition: background 0.4s ease;
+        }
+        
+        @keyframes bgPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* 导航栏 */
+        .navbar {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .navbar h1 .logo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            object-fit: cover;
+            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .navbar h1:hover .logo-icon {
+            transform: scale(1.05);
+        }
+        
+        .navbar h1 .logo-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        /* 主题切换按钮 */
+        .theme-toggle {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--input-focus-bg);
+            border-color: var(--border-hover);
+            transform: scale(1.05);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            background: var(--input-bg);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-links a::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text-primary);
+        }
+        
+        .nav-links a:hover::before, .nav-links a.active::before {
+            opacity: 0.15;
+        }
+        
+        .nav-links a.active {
+            box-shadow: var(--glow-cyan);
+        }
         
         /* 主内容 */
-        .main { margin-top: 60px; padding: 20px; max-width: 1400px; margin-left: auto; margin-right: auto; }
+        .main {
+            margin-top: 64px;
+            padding: 24px;
+            max-width: 1440px;
+            margin-left: auto;
+            margin-right: auto;
+        }
         
-        /* 卡片 */
-        .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden; }
-        .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .card-body { padding: 20px; }
+        /* 玻璃态卡片 */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         
-        /* 统计卡片 */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .stat-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
-        .stat-card .icon { font-size: 2rem; margin-bottom: 10px; }
-        .stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
-        .stat-card .label { color: #666; margin-top: 5px; }
+        .card:hover {
+            border-color: var(--border-hover);
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--input-bg);
+        }
+        
+        .card-body {
+            padding: 24px;
+        }
+        
+        /* 统计卡片网格 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-hover);
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stat-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        
+        .stat-card .value.upload {
+            color: var(--accent-cyan);
+        }
+        
+        .stat-card .value.download {
+            color: var(--accent-green);
+        }
+        
+        .stat-card .value.primary {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-card .label {
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
         
         /* 表格 */
-        .table { width: 100%; border-collapse: collapse; }
-        .table th, .table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
-        .table th { background: #f8f9fa; font-weight: 600; }
-        .table tr:hover { background: #f8f9fa; }
-        .table .online { color: var(--success); }
-        .table .offline { color: #999; }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th, .table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .table th {
+            background: var(--input-bg);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        
+        .table tr {
+            transition: all 0.2s;
+        }
+        
+        .table tbody tr:hover {
+            background: var(--table-hover);
+        }
+        
+        .table .online { color: var(--accent-green); }
+        .table .offline { color: var(--text-muted); }
+        
+        /* 设备图标 */
+        .device-icon {
+            font-size: 1.8rem;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+        
+        .device-name {
+            vertical-align: middle;
+            font-weight: 500;
+        }
         
         /* 标签 */
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
-        .badge-success { background: #d4edda; color: #155724; }
-        .badge-warning { background: #fff3cd; color: #856404; }
-        .badge-danger { background: #f8d7da; color: #721c24; }
-        .badge-info { background: #d1ecf1; color: #0c5460; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-orange);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .badge-info {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+        
+        .badge-trusted {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(139, 92, 246, 0.2));
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
         
         /* 按钮 */
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.3s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-purple);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+            box-shadow: var(--glow-green);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-red), #dc2626);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
         
         /* 表单 */
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; }
-        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+            background: var(--input-focus-bg);
+        }
+        
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+        
+        select.form-control {
+            cursor: pointer;
+            max-width: 250px;
+        }
+        
+        select.form-control option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
         
         /* 告警列表 */
-        .alert-item { padding: 12px 15px; border-left: 4px solid; margin-bottom: 10px; background: white; border-radius: 0 4px 4px 0; }
-        .alert-warning { border-color: var(--warning); }
-        .alert-danger { border-color: var(--danger); }
-        .alert-info { border-color: var(--primary); }
+        .alert-item {
+            padding: 16px 20px;
+            border-left: 4px solid;
+            margin-bottom: 12px;
+            background: var(--input-bg);
+            border-radius: 0 12px 12px 0;
+            transition: all 0.3s;
+        }
+        
+        .alert-item:hover {
+            background: var(--input-focus-bg);
+        }
+        
+        .alert-warning {
+            border-color: var(--accent-orange);
+        }
+        
+        .alert-danger {
+            border-color: var(--accent-red);
+        }
+        
+        .alert-info {
+            border-color: var(--accent-cyan);
+        }
         
         /* 图表容器 */
-        .chart-container { position: relative; height: 300px; }
+        .chart-container {
+            position: relative;
+            height: 320px;
+        }
+        
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        @media (max-width: 900px) {
+            .chart-row { grid-template-columns: 1fr; }
+        }
         
         /* 加载状态 */
-        .loading { text-align: center; padding: 40px; color: #666; }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
         
         /* 响应式 */
         @media (max-width: 768px) {
-            .navbar { padding: 0 10px; }
-            .navbar h1 { font-size: 1rem; }
-            .nav-links a { padding: 6px 10px; font-size: 0.85rem; }
-            .main { padding: 10px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .stat-card { padding: 15px; }
-            .stat-card .value { font-size: 1.4rem; }
+            .navbar { padding: 0 16px; }
+            .navbar h1 { font-size: 1.1rem; }
+            .nav-links a { padding: 8px 12px; font-size: 0.8rem; }
+            .theme-toggle { width: 38px; height: 38px; }
+            .main { padding: 16px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .stat-card { padding: 16px; }
+            .stat-card .value { font-size: 1.5rem; }
             .table { font-size: 0.85rem; }
-            .table th, .table td { padding: 8px 10px; }
+            .table th, .table td { padding: 12px 14px; }
         }
         
-        /* 隐藏页面 */
-        .page { display: none; }
+        /* 页面切换 */
+        .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         
-        /* 设置页面 */
-        .settings-section { margin-bottom: 30px; }
-        .settings-section h3 { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid var(--primary); }
-        
-        /* 安全提示样式 */
-        .security-tip {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
-            border: 1px solid #ffc107;
-            border-left: 4px solid #ff9800;
-            border-radius: 6px;
-            padding: 12px 15px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-            line-height: 1.5;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .security-tip strong { color: #856404; }
-        .security-tip details { color: #666; font-size: 0.85rem; }
-        .security-tip ol { background: rgba(255,255,255,0.5); padding: 10px 15px 10px 35px; border-radius: 4px; margin-top: 8px; }
-        .security-tip li { margin: 3px 0; }
+        
+        /* 设置页面分类标题 */
+        .settings-section {
+            margin-bottom: 32px;
+        }
+        
+        .settings-section h3 {
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        
+        .settings-section h3:hover {
+            border-left-color: var(--accent-purple);
+            background: var(--input-focus-bg);
+        }
+        
+        /* 安全提示 */
+        .security-tip {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.05));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-left: 4px solid var(--accent-orange);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .security-tip strong {
+            color: var(--accent-orange);
+        }
         
         /* 刷新动画 */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinning { animation: spin 1s linear infinite; }
+        
+        /* 流量预测 */
+        .prediction-box {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .prediction-box h4 {
+            margin-bottom: 16px;
+            color: var(--accent-cyan);
+            font-size: 1rem;
+        }
+        
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* 信任设备标识 */
+        .trusted-badge {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+            font-weight: 600;
+        }
+        
+        /* 复选框样式 */
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-cyan);
+            cursor: pointer;
+        }
+        
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.3);
+        }
     </style>
 </head>
 <body>
     <div id="app">
         <!-- 导航栏 -->
         <nav class="navbar">
-            <h1><span>🏠</span> iHomeGuard</h1>
-            <div class="nav-links">
-                <a href="#" :class="{active: currentPage==='devices'}" @click="currentPage='devices'">设备</a>
-                <a href="#" :class="{active: currentPage==='stats'}" @click="currentPage='stats'">统计</a>
-                <a href="#" :class="{active: currentPage==='alerts'}" @click="currentPage='alerts'">告警</a>
-                <a href="#" :class="{active: currentPage==='settings'}" @click="currentPage='settings'">设置</a>
+            <h1>
+                <img src="/static/iHG.png" alt="iHG" class="logo-icon">
+                <span class="logo-text">iHomeGuard</span>
+            </h1>
+            <div class="navbar-right">
+                <div class="nav-links">
+                    <a href="#" :class="{active: currentPage==='devices'}" @click="currentPage='devices'">设备</a>
+                    <a href="#" :class="{active: currentPage==='stats'}" @click="currentPage='stats'">统计</a>
+                    <a href="#" :class="{active: currentPage==='alerts'}" @click="currentPage='alerts'">告警</a>
+                    <a href="#" :class="{active: currentPage==='settings'}" @click="currentPage='settings'">设置</a>
+                </div>
+                <button class="theme-toggle" @click="toggleTheme" :title="isDarkMode ? '切换到日间模式' : '切换到夜间模式'">
+                    {{ isDarkMode ? '☀️' : '🌙' }}
+                </button>
             </div>
         </nav>
         
@@ -145,31 +729,41 @@
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="icon">📱</div>
-                        <div class="value">{{ onlineCount }}</div>
+                        <div class="value primary">{{ onlineCount }}</div>
                         <div class="label">在线设备</div>
                     </div>
                     <div class="stat-card">
                         <div class="icon">⬆️</div>
-                        <div class="value">{{ formatSpeed(totalUploadSpeed) }}</div>
+                        <div class="value upload">{{ formatSpeed(totalUploadSpeed) }}</div>
                         <div class="label">实时上传</div>
                     </div>
                     <div class="stat-card">
                         <div class="icon">⬇️</div>
-                        <div class="value">{{ formatSpeed(totalDownloadSpeed) }}</div>
+                        <div class="value download">{{ formatSpeed(totalDownloadSpeed) }}</div>
                         <div class="label">实时下载</div>
                     </div>
                     <div class="stat-card">
+                        <div class="icon">📤</div>
+                        <div class="value upload">{{ formatBytes(totalUpload) }}</div>
+                        <div class="label">今日上传</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon">📥</div>
+                        <div class="value download">{{ formatBytes(totalDownload) }}</div>
+                        <div class="label">今日下载</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="icon">📊</div>
-                        <div class="value">{{ formatBytes(totalTraffic) }}</div>
-                        <div class="label">今日流量</div>
+                        <div class="value primary">{{ formatBytes(totalTraffic) }}</div>
+                        <div class="label">今日总流量</div>
                     </div>
                 </div>
                 
                 <div class="card">
                     <div class="card-header">
-                        <span>在线设备列表</span>
+                        <span>在线设备列表 ({{ onlineCount }} 台)</span>
                         <button class="btn btn-primary btn-sm" @click="refreshDevices" :disabled="loading">
-                            {{ loading ? '🔄' : '🔄' }} 刷新
+                            🔄 刷新
                         </button>
                     </div>
                     <div class="card-body">
@@ -178,8 +772,9 @@
                                 <tr>
                                     <th>设备</th>
                                     <th>IP 地址</th>
-                                    <th>上传</th>
-                                    <th>下载</th>
+                                    <th>上传/下载速度</th>
+                                    <th>今日流量</th>
+                                    <th>在线时长</th>
                                     <th>连接数</th>
                                     <th>操作</th>
                                 </tr>
@@ -187,16 +782,31 @@
                             <tbody>
                                 <tr v-for="device in devices" :key="device.mac">
                                     <td>
-                                        <strong>{{ device.alias || device.hostname || device.mac.slice(0,8) }}</strong>
-                                        <span v-if="device.vendor" class="badge badge-info" style="margin-left:5px">{{ device.vendor }}</span>
+                                        <span class="device-icon">{{ getDeviceIcon(device) }}</span>
+                                        <span class="device-name">
+                                            <strong>{{ device.alias || device.hostname || device.mac.slice(0,8) }}</strong>
+                                            <span v-if="device.is_trusted" class="trusted-badge">信任</span>
+                                        </span>
+                                        <br>
+                                        <small style="color:var(--text-muted)">{{ device.vendor || 'Unknown' }}</small>
                                     </td>
                                     <td>{{ device.ip }}</td>
-                                    <td>{{ formatSpeed(device.upload_speed) }}</td>
-                                    <td>{{ formatSpeed(device.download_speed) }}</td>
+                                    <td>
+                                        <span style="color:var(--accent-cyan)">⬆{{ formatSpeed(device.upload_speed) }}</span><br>
+                                        <span style="color:var(--accent-green)">⬇{{ formatSpeed(device.download_speed) }}</span>
+                                    </td>
+                                    <td>
+                                        <span style="color:var(--accent-cyan)">⬆{{ formatBytes(device.total_upload) }}</span><br>
+                                        <span style="color:var(--accent-green)">⬇{{ formatBytes(device.total_download) }}</span>
+                                    </td>
+                                    <td>{{ device.today_online_formatted || '-' }}</td>
                                     <td>{{ device.connections }}</td>
                                     <td>
-                                        <button class="btn btn-sm" @click="editDevice(device)">📝</button>
-                                        <button class="btn btn-sm btn-danger" @click="kickDevice(device)">🚫</button>
+                                        <button class="btn btn-sm" @click="editDevice(device)" title="编辑">📝</button>
+                                        <button class="btn btn-sm" @click="toggleTrust(device)" :title="device.is_trusted ? '取消信任' : '设为信任'">
+                                            {{ device.is_trusted ? '✅' : '⭐' }}
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" @click="kickDevice(device)" title="踢下线">🚫</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -209,20 +819,58 @@
             <!-- 统计页面 -->
             <div class="page" :class="{active: currentPage==='stats'}">
                 <div class="card">
-                    <div class="card-header">流量趋势（最近7天）</div>
+                    <div class="card-header">实时流量统计</div>
                     <div class="card-body">
                         <div class="chart-container">
-                            <canvas id="trafficChart"></canvas>
+                            <canvas id="realtimeChart"></canvas>
                         </div>
                     </div>
                 </div>
                 
-                <div class="card">
-                    <div class="card-header">设备统计</div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="deviceChart"></canvas>
+                <div class="chart-row">
+                    <div class="card">
+                        <div class="card-header">流量趋势（最近7天）</div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="trafficChart"></canvas>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">设备在线统计</div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="deviceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 流量预测 -->
+                <div class="card">
+                    <div class="card-header">📊 流量趋势预测</div>
+                    <div class="card-body">
+                        <div class="prediction-box" v-if="prediction">
+                            <h4>📈 本月流量预测</h4>
+                            <div class="prediction-item">
+                                <span>预计总上传</span>
+                                <strong style="color:var(--accent-cyan)">{{ formatBytes(prediction.upload) }}</strong>
+                            </div>
+                            <div class="prediction-item">
+                                <span>预计总下载</span>
+                                <strong style="color:var(--accent-green)">{{ formatBytes(prediction.download) }}</strong>
+                            </div>
+                            <div class="prediction-item">
+                                <span>预计总流量</span>
+                                <strong>{{ formatBytes(prediction.total) }}</strong>
+                            </div>
+                            <div class="prediction-item">
+                                <span>日均流量</span>
+                                <strong>{{ formatBytes(prediction.daily_avg) }}</strong>
+                            </div>
+                        </div>
+                        <div v-else class="loading">加载预测数据...</div>
                     </div>
                 </div>
             </div>
@@ -231,15 +879,16 @@
             <div class="page" :class="{active: currentPage==='alerts'}">
                 <div class="card">
                     <div class="card-header">
-                        <span>告警记录</span>
+                        <span>告警记录 ({{ alerts.length }} 条未处理)</span>
                         <button class="btn btn-sm" @click="refreshAlerts">🔄 刷新</button>
                     </div>
                     <div class="card-body">
                         <div v-for="alert in alerts" :key="alert.id" class="alert-item" :class="'alert-' + alert.severity">
-                            <strong>[{{ alert.alert_type }}]</strong> {{ alert.message }}
-                            <small style="float:right;color:#999">{{ alert.created_at }}</small>
+                            <strong>[{{ getAlertTypeLabel(alert.alert_type) }}]</strong> {{ alert.message }}
+                            <small style="float:right;color:var(--text-muted)">{{ alert.created_at }}</small>
+                            <button class="btn btn-sm" style="float:right;margin-right:10px" @click="resolveAlert(alert.id)">处理</button>
                         </div>
-                        <div v-if="alerts.length === 0" class="loading">暂无告警</div>
+                        <div v-if="alerts.length === 0" class="loading">暂无告警 ✅</div>
                     </div>
                 </div>
             </div>
@@ -249,82 +898,113 @@
                 <div class="card">
                     <div class="card-header">系统设置</div>
                     <div class="card-body">
+                        <!-- 爱快路由器设置 -->
                         <div class="settings-section">
                             <h3>📡 爱快路由器</h3>
-                            
-                            <!-- 安全提示 -->
                             <div class="security-tip">
-                                <strong>🔒 安全建议：</strong>请勿使用管理员账户！建议在爱快路由器中创建一个<strong>只读账户</strong>用于数据采集。
-                                <details style="margin-top:8px">
-                                    <summary style="cursor:pointer;color:#3498db">查看创建只读账户步骤</summary>
-                                    <ol style="margin-top:10px;padding-left:20px;line-height:1.8">
-                                        <li>登录爱快路由器管理后台</li>
-                                        <li>进入【系统设置】→【账户管理】</li>
-                                        <li>点击【添加账户】</li>
-                                        <li>设置用户名（如：monitor）和密码</li>
-                                        <li>权限选择：<strong>只读权限</strong></li>
-                                        <li>保存后使用此账户信息配置下方表单</li>
-                                    </ol>
-                                </details>
+                                <strong>🔒 安全建议：</strong>请勿使用管理员账户！建议创建<strong>只读账户</strong>用于数据采集。
                             </div>
-                            
-                            <div class="form-group">
-                                <label>路由器地址</label>
-                                <input type="text" class="form-control" v-model="config.ikuai.local_url" placeholder="http://192.168.1.1">
-                            </div>
-                            <div class="form-group">
-                                <label>用户名</label>
-                                <input type="text" class="form-control" v-model="config.ikuai.username" placeholder="只读账户用户名">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>路由器地址</label>
+                                    <input type="text" class="form-control" v-model="config.ikuai.local_url" placeholder="http://192.168.1.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>用户名</label>
+                                    <input type="text" class="form-control" v-model="config.ikuai.username" placeholder="只读账户用户名">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>密码</label>
-                                <input type="password" class="form-control" v-model="config.ikuai.password" placeholder="只读账户密码">
+                                <input type="password" class="form-control" v-model="config.ikuai.password" placeholder="只读账户密码（加密存储）">
                             </div>
                             <button class="btn btn-primary" @click="testIkuai">测试连接</button>
-                            <span v-if="ikuaiStatus" :style="{color: ikuaiStatus.success ? 'green' : 'red', marginLeft: '10px'}">
+                            <span v-if="ikuaiStatus" :style="{color: ikuaiStatus.success ? 'var(--accent-green)' : 'var(--accent-red)', marginLeft: '10px'}">
                                 {{ ikuaiStatus.message }}
                             </span>
                         </div>
                         
+                        <!-- 推送设置 -->
                         <div class="settings-section">
-                            <h3>🔔 PushMe 推送</h3>
+                            <h3>🔔 消息推送</h3>
                             <div class="form-group">
-                                <label>Push Key</label>
-                                <input type="text" class="form-control" v-model="config.pushme.push_key" placeholder="你的 push_key">
+                                <label>推送渠道</label>
+                                <select class="form-control" v-model="pushChannel">
+                                    <option value="pushme">PushMe</option>
+                                    <option value="wecom">企业微信</option>
+                                    <option value="dingtalk">钉钉</option>
+                                </select>
                             </div>
+                            
+                            <!-- PushMe -->
+                            <div v-show="pushChannel==='pushme'">
+                                <div class="form-group">
+                                    <label>Push Key</label>
+                                    <input type="text" class="form-control" v-model="config.pushme.push_key" placeholder="你的 push_key">
+                                </div>
+                            </div>
+                            
+                            <!-- 企业微信 -->
+                            <div v-show="pushChannel==='wecom'">
+                                <div class="form-group">
+                                    <label>Webhook 地址</label>
+                                    <input type="text" class="form-control" v-model="config.pushme.wecom_webhook" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx">
+                                </div>
+                            </div>
+                            
+                            <!-- 钉钉 -->
+                            <div v-show="pushChannel==='dingtalk'">
+                                <div class="form-group">
+                                    <label>Webhook 地址</label>
+                                    <input type="text" class="form-control" v-model="config.pushme.dingtalk_webhook" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx">
+                                </div>
+                                <div class="form-group">
+                                    <label>加签密钥（可选）</label>
+                                    <input type="password" class="form-control" v-model="config.pushme.dingtalk_secret" placeholder="SEC开头的密钥">
+                                </div>
+                            </div>
+                            
                             <div class="form-group">
-                                <label>
-                                    <input type="checkbox" v-model="config.pushme.enabled"> 启用推送
-                                </label>
+                                <label><input type="checkbox" v-model="config.pushme.enabled"> 启用推送通知</label>
                             </div>
-                            <button class="btn btn-primary" @click="testPushMe">测试推送</button>
-                            <span v-if="pushStatus" :style="{color: pushStatus.success ? 'green' : 'red', marginLeft: '10px'}">
+                            <button class="btn btn-primary" @click="testPush">测试推送</button>
+                            <span v-if="pushStatus" :style="{color: pushStatus.success ? 'var(--accent-green)' : 'var(--accent-red)', marginLeft: '10px'}">
                                 {{ pushStatus.message }}
                             </span>
                         </div>
                         
+                        <!-- 监控设置 -->
                         <div class="settings-section">
                             <h3>⚙️ 监控设置</h3>
-                            <div class="form-group">
-                                <label>采集间隔（秒）</label>
-                                <input type="number" class="form-control" v-model="config.monitor.collect_interval">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>采集间隔（秒）</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.collect_interval">
+                                </div>
+                                <div class="form-group">
+                                    <label>日报推送时间</label>
+                                    <input type="time" class="form-control" v-model="config.monitor.report_time">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>流量告警阈值（GB）</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.traffic_threshold_gb">
+                                </div>
+                                <div class="form-group">
+                                    <label>长在线告警阈值（小时）</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.long_online_hours">
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label>日报推送时间</label>
-                                <input type="time" class="form-control" v-model="config.monitor.report_time">
+                                <label><input type="checkbox" v-model="config.monitor.alert_new_device"> 新设备接入告警</label>
                             </div>
                             <div class="form-group">
-                                <label>
-                                    <input type="checkbox" v-model="config.monitor.alert_new_device"> 新设备接入告警
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>流量告警阈值（GB）</label>
-                                <input type="number" class="form-control" v-model="config.monitor.traffic_threshold_gb">
+                                <label><input type="checkbox" v-model="config.monitor.alert_offline"> 重要设备离线告警</label>
                             </div>
                         </div>
                         
-                        <button class="btn btn-success" @click="saveSettings">保存设置</button>
+                        <button class="btn btn-success" @click="saveSettings">💾 保存设置</button>
                     </div>
                 </div>
             </div>
@@ -343,22 +1023,88 @@
                     alerts: [],
                     config: {
                         ikuai: { local_url: '', username: '', password: '' },
-                        pushme: { push_key: '', enabled: true },
-                        monitor: { collect_interval: 300, report_time: '21:00', alert_new_device: true, traffic_threshold_gb: 10 }
+                        pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
+                        monitor: { collect_interval: 300, report_time: '21:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24 }
                     },
+                    prediction: null,
+                    pushChannel: 'pushme',
                     ikuaiStatus: null,
                     pushStatus: null,
                     trafficChart: null,
-                    deviceChart: null
+                    deviceChart: null,
+                    realtimeChart: null,
+                    realtimeData: { labels: [], upload: [], download: [] },
+                    isDarkMode: true
                 };
             },
             computed: {
                 onlineCount() { return this.devices.length; },
                 totalUploadSpeed() { return this.devices.reduce((sum, d) => sum + (d.upload_speed || 0), 0); },
                 totalDownloadSpeed() { return this.devices.reduce((sum, d) => sum + (d.download_speed || 0), 0); },
-                totalTraffic() { return this.devices.reduce((sum, d) => sum + (d.total_upload || 0) + (d.total_download || 0), 0); }
+                totalUpload() { return this.devices.reduce((sum, d) => sum + (d.total_upload || 0), 0); },
+                totalDownload() { return this.devices.reduce((sum, d) => sum + (d.total_download || 0), 0); },
+                totalTraffic() { return this.totalUpload + this.totalDownload; }
             },
             methods: {
+                toggleTheme() {
+                    this.isDarkMode = !this.isDarkMode;
+                    localStorage.setItem('ihomeguard-theme', this.isDarkMode ? 'dark' : 'light');
+                    this.applyTheme();
+                    this.updateChartColors();
+                },
+                applyTheme() {
+                    if (this.isDarkMode) {
+                        document.documentElement.classList.remove('light-mode');
+                    } else {
+                        document.documentElement.classList.add('light-mode');
+                    }
+                },
+                loadTheme() {
+                    const saved = localStorage.getItem('ihomeguard-theme');
+                    if (saved) {
+                        this.isDarkMode = saved === 'dark';
+                    }
+                    this.applyTheme();
+                },
+                getChartColors() {
+                    return {
+                        textColor: this.isDarkMode ? '#94a3b8' : '#475569',
+                        gridColor: this.isDarkMode ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)',
+                        cyan: this.isDarkMode ? '#06b6d4' : '#0891b2',
+                        green: this.isDarkMode ? '#10b981' : '#059669',
+                        purple: this.isDarkMode ? '#9b59b6' : '#7c3aed'
+                    };
+                },
+                updateChartColors() {
+                    const colors = this.getChartColors();
+                    
+                    if (this.realtimeChart) {
+                        this.realtimeChart.options.scales.x.ticks.color = colors.textColor;
+                        this.realtimeChart.options.scales.y.ticks.color = colors.textColor;
+                        this.realtimeChart.options.scales.x.grid.color = colors.gridColor;
+                        this.realtimeChart.options.scales.y.grid.color = colors.gridColor;
+                        this.realtimeChart.data.datasets[0].borderColor = colors.cyan;
+                        this.realtimeChart.data.datasets[1].borderColor = colors.green;
+                        this.realtimeChart.update();
+                    }
+                    
+                    if (this.trafficChart) {
+                        this.trafficChart.options.scales.x.ticks.color = colors.textColor;
+                        this.trafficChart.options.scales.y.ticks.color = colors.textColor;
+                        this.trafficChart.options.scales.x.grid.color = colors.gridColor;
+                        this.trafficChart.options.scales.y.grid.color = colors.gridColor;
+                        this.trafficChart.update();
+                    }
+                    
+                    if (this.deviceChart) {
+                        this.deviceChart.options.scales.x.ticks.color = colors.textColor;
+                        this.deviceChart.options.scales.y.ticks.color = colors.textColor;
+                        this.deviceChart.options.scales.x.grid.color = colors.gridColor;
+                        this.deviceChart.options.scales.y.grid.color = colors.gridColor;
+                        this.deviceChart.data.datasets[0].borderColor = colors.purple;
+                        this.deviceChart.update();
+                    }
+                },
                 formatBytes(bytes) {
                     if (!bytes) return '0 B';
                     const k = 1024;
@@ -369,11 +1115,42 @@
                 formatSpeed(bytes) {
                     return this.formatBytes(bytes) + '/s';
                 },
+                getDeviceIcon(device) {
+                    const vendor = (device.vendor || '').toLowerCase();
+                    const model = (device.client_model || '').toLowerCase();
+                    const hostname = (device.hostname || '').toLowerCase();
+                    const deviceType = (device.client_device || '').toLowerCase();
+                    
+                    if (hostname.includes('gateway') || hostname.includes('router') || model.includes('路由') || model.includes('网关')) return '🌐';
+                    if (hostname.includes('nas') || hostname.includes('synology') || model.includes('群晖')) return '💾';
+                    if (hostname.includes('server') || deviceType.includes('proxmox') || model.includes('易有云')) return '🖥️';
+                    if (model.includes('phone') || model.includes('pad') || model.includes('手机') || model.includes('平板')) return '📱';
+                    if (deviceType.includes('windows') || deviceType.includes('mac') || deviceType.includes('linux')) return '💻';
+                    if (model.includes('音箱') || model.includes('soundbox') || hostname.includes('soundbox')) return '🔊';
+                    if (model.includes('摄像') || model.includes('camera')) return '📹';
+                    if (model.includes('插座') || model.includes('plug')) return '🔌';
+                    if (model.includes('灯') || model.includes('light')) return '💡';
+                    if (model.includes('空调') || model.includes('aircondition')) return '❄️';
+                    if (model.includes('净化')) return '🌬️';
+                    if (vendor.includes('cisco') || vendor.includes('huawei') || vendor.includes('tp-link')) return '📡';
+                    return '📟';
+                },
+                getAlertTypeLabel(type) {
+                    const labels = {
+                        'new_device': '🔐 新设备',
+                        'device_offline': '📴 设备离线',
+                        'high_traffic': '📊 流量异常',
+                        'long_online': '⏰ 长时间在线',
+                        'high_connections': '🔗 连接数异常'
+                    };
+                    return labels[type] || type;
+                },
                 async refreshDevices() {
                     this.loading = true;
                     try {
                         const res = await axios.get('/api/devices');
                         this.devices = res.data.devices || [];
+                        this.updateRealtimeChart();
                     } catch (e) {
                         console.error('获取设备失败:', e);
                     }
@@ -397,10 +1174,20 @@
                         console.error('获取配置失败:', e);
                     }
                 },
+                async loadPrediction() {
+                    try {
+                        const res = await axios.get('/api/stats/prediction');
+                        if (res.data.success) {
+                            this.prediction = res.data.prediction;
+                        }
+                    } catch (e) {
+                        console.error('获取预测失败:', e);
+                    }
+                },
                 async saveSettings() {
                     try {
                         await axios.post('/api/config', this.config);
-                        alert('设置已保存');
+                        alert('设置已保存 ✓');
                     } catch (e) {
                         alert('保存失败: ' + e.message);
                     }
@@ -413,9 +1200,9 @@
                         this.ikuaiStatus = { success: false, message: e.message };
                     }
                 },
-                async testPushMe() {
+                async testPush() {
                     try {
-                        const res = await axios.post('/api/test/pushme', { push_key: this.config.pushme.push_key });
+                        const res = await axios.post('/api/test/push', { channel: this.pushChannel, ...this.config.pushme });
                         this.pushStatus = res.data;
                     } catch (e) {
                         this.pushStatus = { success: false, message: e.message };
@@ -428,29 +1215,68 @@
                         device.alias = alias;
                     }
                 },
+                async toggleTrust(device) {
+                    const is_trusted = device.is_trusted ? 0 : 1;
+                    await axios.post('/api/device/' + device.mac + '/alias', { alias: device.alias || '', is_trusted });
+                    device.is_trusted = is_trusted;
+                },
                 async kickDevice(device) {
                     if (confirm('确定要将 ' + (device.alias || device.mac) + ' 踢下线吗？')) {
                         await axios.post('/api/device/' + device.mac + '/kick');
                         this.refreshDevices();
                     }
                 },
+                async resolveAlert(alertId) {
+                    await axios.post('/api/alert/' + alertId + '/resolve');
+                    this.refreshAlerts();
+                },
                 initCharts() {
-                    // 流量趋势图
-                    const trafficCtx = document.getElementById('trafficChart');
-                    if (trafficCtx) {
-                        this.trafficChart = new Chart(trafficCtx, {
+                    const colors = this.getChartColors();
+                    
+                    // 实时流量图
+                    const realtimeCtx = document.getElementById('realtimeChart');
+                    if (realtimeCtx) {
+                        this.realtimeChart = new Chart(realtimeCtx, {
                             type: 'line',
                             data: {
                                 labels: [],
                                 datasets: [
-                                    { label: '上传', data: [], borderColor: '#3498db', tension: 0.4 },
-                                    { label: '下载', data: [], borderColor: '#27ae60', tension: 0.4 }
+                                    { label: '上传速度', data: [], borderColor: colors.cyan, backgroundColor: colors.cyan + '20', fill: true, tension: 0.4 },
+                                    { label: '下载速度', data: [], borderColor: colors.green, backgroundColor: colors.green + '20', fill: true, tension: 0.4 }
                                 ]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                scales: { y: { beginAtZero: true } }
+                                scales: {
+                                    y: { beginAtZero: true, ticks: { callback: v => this.formatSpeed(v), color: colors.textColor }, title: { display: true, text: '速度', color: colors.textColor }, grid: { color: colors.gridColor } },
+                                    x: { title: { display: true, text: '时间', color: colors.textColor }, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                                },
+                                plugins: { legend: { position: 'top', labels: { color: colors.textColor } } }
+                            }
+                        });
+                    }
+                    
+                    // 流量趋势图
+                    const trafficCtx = document.getElementById('trafficChart');
+                    if (trafficCtx) {
+                        this.trafficChart = new Chart(trafficCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: [],
+                                datasets: [
+                                    { label: '上传', data: [], backgroundColor: colors.cyan + '99' },
+                                    { label: '下载', data: [], backgroundColor: colors.green + '99' }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: { beginAtZero: true, ticks: { callback: v => this.formatBytes(v), color: colors.textColor }, title: { display: true, text: '流量', color: colors.textColor }, grid: { color: colors.gridColor } },
+                                    x: { title: { display: true, text: '日期', color: colors.textColor }, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                                },
+                                plugins: { legend: { position: 'top', labels: { color: colors.textColor } } }
                             }
                         });
                     }
@@ -459,32 +1285,59 @@
                     const deviceCtx = document.getElementById('deviceChart');
                     if (deviceCtx) {
                         this.deviceChart = new Chart(deviceCtx, {
-                            type: 'bar',
+                            type: 'line',
                             data: {
                                 labels: [],
-                                datasets: [{ label: '在线设备数', data: [], backgroundColor: '#3498db' }]
+                                datasets: [{ label: '在线设备数', data: [], borderColor: colors.purple, backgroundColor: colors.purple + '30', fill: true, tension: 0.4 }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                scales: { y: { beginAtZero: true } }
+                                scales: {
+                                    y: { beginAtZero: true, ticks: { stepSize: 1, color: colors.textColor }, title: { display: true, text: '设备数（台）', color: colors.textColor }, grid: { color: colors.gridColor } },
+                                    x: { title: { display: true, text: '日期', color: colors.textColor }, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                                },
+                                plugins: { legend: { position: 'top', labels: { color: colors.textColor } } }
                             }
                         });
+                    }
+                },
+                updateRealtimeChart() {
+                    const now = new Date();
+                    const timeLabel = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+                    
+                    this.realtimeData.labels.push(timeLabel);
+                    this.realtimeData.upload.push(this.totalUploadSpeed);
+                    this.realtimeData.download.push(this.totalDownloadSpeed);
+                    
+                    if (this.realtimeData.labels.length > 30) {
+                        this.realtimeData.labels.shift();
+                        this.realtimeData.upload.shift();
+                        this.realtimeData.download.shift();
+                    }
+                    
+                    if (this.realtimeChart) {
+                        this.realtimeChart.data.labels = this.realtimeData.labels;
+                        this.realtimeChart.data.datasets[0].data = this.realtimeData.upload;
+                        this.realtimeChart.data.datasets[1].data = this.realtimeData.download;
+                        this.realtimeChart.update('none');
                     }
                 },
                 async loadStats() {
                     try {
                         const res = await axios.get('/api/stats/week');
-                        if (res.data && this.trafficChart) {
-                            this.trafficChart.data.labels = res.data.dates;
-                            this.trafficChart.data.datasets[0].data = res.data.upload;
-                            this.trafficChart.data.datasets[1].data = res.data.download;
-                            this.trafficChart.update();
-                        }
-                        if (res.data && this.deviceChart) {
-                            this.deviceChart.data.labels = res.data.dates;
-                            this.deviceChart.data.datasets[0].data = res.data.device_counts;
-                            this.deviceChart.update();
+                        if (res.data.success) {
+                            if (this.trafficChart) {
+                                this.trafficChart.data.labels = res.data.dates;
+                                this.trafficChart.data.datasets[0].data = res.data.upload;
+                                this.trafficChart.data.datasets[1].data = res.data.download;
+                                this.trafficChart.update();
+                            }
+                            if (this.deviceChart) {
+                                this.deviceChart.data.labels = res.data.dates;
+                                this.deviceChart.data.datasets[0].data = res.data.device_counts;
+                                this.deviceChart.update();
+                            }
                         }
                     } catch (e) {
                         console.error('加载统计失败:', e);
@@ -495,20 +1348,21 @@
                 currentPage(newPage) {
                     if (newPage === 'stats') {
                         this.loadStats();
+                        this.loadPrediction();
                     }
                 }
             },
             mounted() {
+                this.loadTheme();
                 this.refreshDevices();
                 this.refreshAlerts();
                 this.loadConfig();
-                this.initCharts();
+                this.$nextTick(() => {
+                    this.initCharts();
+                });
                 
-                // 自动刷新
                 setInterval(() => {
-                    if (this.currentPage === 'devices') {
-                        this.refreshDevices();
-                    }
+                    this.refreshDevices();
                 }, 10000);
             }
         }).mount('#app');

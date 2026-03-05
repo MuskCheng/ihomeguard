@@ -1,6 +1,7 @@
 """监控服务 - 数据采集与异常检测"""
 import sys
 sys.path.insert(0, '..')
+from datetime import datetime
 from clients.ikuai_local import IKuaiLocalClient
 from services.alerter import AlerterService
 import storage
@@ -95,6 +96,9 @@ class MonitorService:
             device = storage.get_device(mac)
             ip = device.get('ip', '') if device else ''
             storage.add_device_event(mac, 'online', ip)
+            # 开始在线会话
+            storage.start_online_session(mac, ip)
+            print(f"[在线] {mac[:8]}... 上线")
         
         # 离线设备
         offline_devices = self._last_known_devices - current_devices
@@ -102,6 +106,18 @@ class MonitorService:
             device = storage.get_device(mac)
             ip = device.get('ip', '') if device else ''
             storage.add_device_event(mac, 'offline', ip)
+            # 结束在线会话
+            storage.end_online_session(mac)
+            # 获取今日在线时长
+            today_online = storage.get_today_online_time(mac)
+            print(f"[离线] {mac[:8]}... 下线 (今日在线: {today_online}分钟)")
+            
+            # 信任设备离线推送
+            if device and device.get('is_trusted') and self.config.get('alert_offline', True):
+                self._send_offline_notification(mac, device)
+        
+        # 检测离线告警
+        self.alerter.check_offline_devices(current_devices, self._last_known_devices)
         
         self._last_known_devices = current_devices
     
@@ -111,12 +127,96 @@ class MonitorService:
         
         device = storage.get_device(mac)
         if not device or not device.get('is_trusted'):
+            # 添加告警记录
             storage.add_alert(
                 alert_type='new_device',
                 severity='warning',
                 mac=mac,
                 message=f'新设备接入: {hostname or mac[:8]} ({ip})'
             )
+            
+            # 推送通知
+            if self.config.get('alert_new_device', True):
+                self._send_new_device_notification(mac, ip, hostname)
+    
+    def _send_new_device_notification(self, mac: str, ip: str, hostname: str):
+        """发送新设备接入通知"""
+        try:
+            from services.pusher import MultiPushClient
+            import config as cfg_module
+            
+            cfg = cfg_module.get_config()
+            pusher = MultiPushClient(cfg.get('pushme', {}))
+            
+            if not pusher.enabled:
+                print(f"[通知] 推送已禁用，跳过")
+                return
+            
+            # 获取设备厂商
+            from services.vendor import get_vendor_cached
+            vendor = get_vendor_cached(mac)
+            
+            title = "🔐 安全告警 - 新设备接入"
+            content = f"""## ⚠️ 新设备接入告警
+
+### 📱 设备信息
+| 项目 | 详情 |
+|------|------|
+| MAC 地址 | `{mac}` |
+| IP 地址 | `{ip}` |
+| 主机名 | {hostname or '未知'} |
+| 厂商 | {vendor or '未知'} |
+
+### ⏰ 接入时间
+{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+*如非本人操作，请及时检查网络安全性*"""
+            
+            success, msg = pusher.send(title, content, 'markdown')
+            if success:
+                print(f"[推送] 新设备通知已发送: {mac}")
+            else:
+                print(f"[推送] 发送失败: {msg}")
+        except Exception as e:
+            print(f"[推送] 异常: {e}")
+    
+    def _send_offline_notification(self, mac: str, device: dict):
+        """发送设备离线通知"""
+        try:
+            from services.pusher import MultiPushClient
+            import config as cfg_module
+            
+            cfg = cfg_module.get_config()
+            pusher = MultiPushClient(cfg.get('pushme', {}))
+            
+            if not pusher.enabled:
+                return
+            
+            alias = device.get('alias', '') or device.get('hostname', '') or mac[:8]
+            ip = device.get('ip', '')
+            
+            title = "📴 设备离线告警"
+            content = f"""## ⚠️ 信任设备离线
+
+### 📱 设备信息
+| 项目 | 详情 |
+|------|------|
+| 设备名称 | **{alias}** |
+| MAC 地址 | `{mac}` |
+| IP 地址 | `{ip}` |
+
+### ⏰ 离线时间
+{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+*iHomeGuard 设备监控*"""
+            
+            success, msg = pusher.send(title, content, 'markdown')
+            if success:
+                print(f"[推送] 离线通知已发送: {alias}")
+        except Exception as e:
+            print(f"[推送] 离线通知异常: {e}")
     
     def get_current_status(self) -> dict:
         """获取当前状态"""
@@ -127,17 +227,32 @@ class MonitorService:
             mac = dev.get('mac', '').upper()
             device_info = storage.get_device(mac) or {}
             
+            # 爱快 monitor_lanip API 返回的字段：
+            # ip_addr: IP地址
+            # total_up / total_down: 累计上传/下载流量
+            # download / upload: 实时下载/上传速度
+            # connect_num: 连接数
+            # comment: 设备备注
+            # hostname: 设备主机名
+            # client_model: 设备型号识别
+            
+            # 获取今日在线时长
+            today_online_minutes = storage.get_today_online_time(mac)
+            
             devices.append({
                 'mac': mac,
-                'ip': dev.get('ip', '') or dev.get('ip_addr', ''),
+                'ip': dev.get('ip_addr', ''),
                 'hostname': dev.get('hostname', '') or dev.get('comment', ''),
-                'alias': device_info.get('alias', ''),
+                'alias': device_info.get('alias', '') or dev.get('comment', ''),
                 'is_trusted': device_info.get('is_trusted', 0),
-                'upload_speed': dev.get('up', 0) or dev.get('upload_speed', 0),
-                'download_speed': dev.get('down', 0) or dev.get('download_speed', 0),
-                'total_upload': dev.get('total_up', 0) or dev.get('upload', 0),
-                'total_download': dev.get('total_down', 0) or dev.get('download', 0),
-                'connections': dev.get('connect', 0) or dev.get('connections', 0)
+                'upload_speed': dev.get('upload', 0),  # 实时上传速度
+                'download_speed': dev.get('download', 0),  # 实时下载速度
+                'total_upload': dev.get('total_up', 0),  # 累计上传
+                'total_download': dev.get('total_down', 0),  # 累计下载
+                'connections': dev.get('connect_num', 0),  # 连接数
+                'client_model': dev.get('client_model', ''),  # 设备型号
+                'client_device': dev.get('client_device', ''),  # 设备厂商
+                'today_online_minutes': today_online_minutes  # 今日在线时长
             })
         
         return {

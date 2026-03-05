@@ -2,9 +2,90 @@
 import json
 import os
 import hashlib
+import base64
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-CONFIG_PATH = os.environ.get('CONFIG_PATH', 'config/config.json')
-DATA_DIR = os.environ.get('DATA_DIR', 'data')
+# 加密密钥（基于机器特征生成）
+def _get_encryption_key():
+    """生成加密密钥"""
+    # 使用固定盐值和机器信息生成密钥
+    salt = b'ihomeguard_encryption_salt_v1'
+    # 使用用户名作为密钥源（同一用户环境下稳定）
+    key_source = os.environ.get('USERNAME', 'default') + 'ihomeguard_secret'
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
+    key = base64.urlsafe_b64encode(kdf.derive(key_source.encode()))
+    return Fernet(key)
+
+_encryptor = None
+
+def encrypt_value(value: str) -> str:
+    """加密敏感数据"""
+    if not value:
+        return value
+    global _encryptor
+    if _encryptor is None:
+        _encryptor = _get_encryption_key()
+    return _encryptor.encrypt(value.encode()).decode()
+
+def decrypt_value(value: str) -> str:
+    """解密敏感数据"""
+    if not value:
+        return value
+    global _encryptor
+    if _encryptor is None:
+        _encryptor = _get_encryption_key()
+    try:
+        return _encryptor.decrypt(value.encode()).decode()
+    except:
+        # 如果解密失败，可能是未加密的旧数据
+        return value
+
+# 智能检测运行环境，选择正确的配置路径
+def _is_docker():
+    """检测是否在 Docker 容器中"""
+    # 检查 /.dockerenv 文件（Docker 容器特有）
+    if os.path.exists('/.dockerenv'):
+        return True
+    # 检查 /proc/1/cgroup 是否包含 docker（Linux 容器特征）
+    try:
+        with open('/proc/1/cgroup', 'r') as f:
+            return 'docker' in f.read()
+    except:
+        pass
+    # Windows 上肯定不是 Docker 容器
+    if os.name == 'nt':
+        return False
+    return False
+
+def _get_config_path():
+    """获取配置文件路径"""
+    # 优先使用环境变量
+    env_path = os.environ.get('CONFIG_PATH')
+    if env_path:
+        return env_path
+    
+    # Docker 环境
+    if _is_docker():
+        return '/app/config/config.json'
+    
+    # 本地开发环境，使用项目目录
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'config.json')
+
+def _get_data_dir():
+    """获取数据目录路径"""
+    env_dir = os.environ.get('DATA_DIR')
+    if env_dir:
+        return env_dir
+    
+    if _is_docker():
+        return '/app/data'
+    
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+CONFIG_PATH = _get_config_path()
+DATA_DIR = _get_data_dir()
 
 # 版本号从 VERSION 文件读取
 def get_version():
@@ -23,29 +104,35 @@ _config = None
 def get_config():
     global _config
     if _config is None:
-        # 优先从环境变量读取敏感信息
         _config = get_default_config()
         
-        # 环境变量覆盖
-        if os.environ.get('IKUAI_URL'):
-            _config['ikuai']['local_url'] = os.environ['IKUAI_URL']
-        if os.environ.get('IKUAI_USER'):
-            _config['ikuai']['username'] = os.environ['IKUAI_USER']
-        if os.environ.get('IKUAI_PASS'):
-            _config['ikuai']['password'] = os.environ['IKUAI_PASS']
-        if os.environ.get('PUSHME_KEY'):
-            _config['pushme']['push_key'] = os.environ['PUSHME_KEY']
-        
-        # 从配置文件加载（覆盖默认值，但不覆盖环境变量）
+        # 从配置文件加载
         if os.path.exists(CONFIG_PATH):
             with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
                 file_config = json.load(f)
                 for key in file_config:
-                    if key not in ['ikuai', 'pushme'] or not os.environ.get(f'{key.upper()}_URL') and not os.environ.get(f'{key.upper()}_KEY'):
-                        if isinstance(file_config[key], dict):
-                            _config[key].update(file_config[key])
-                        else:
-                            _config[key] = file_config[key]
+                    if isinstance(file_config[key], dict):
+                        _config[key].update(file_config[key])
+                    else:
+                        _config[key] = file_config[key]
+        
+        # 解密敏感字段
+        for field in SENSITIVE_FIELDS:
+            for section in ['ikuai', 'pushme']:
+                if section in _config and field in _config[section]:
+                    encrypted = _config[section].get(field, '')
+                    if encrypted and encrypted.startswith('enc:'):
+                        _config[section][field] = decrypt_value(encrypted[4:])
+        
+        # 环境变量覆盖（仅当配置文件中对应值为空时）
+        if os.environ.get('IKUAI_URL') and not _config['ikuai'].get('local_url'):
+            _config['ikuai']['local_url'] = os.environ['IKUAI_URL']
+        if os.environ.get('IKUAI_USER') and not _config['ikuai'].get('username'):
+            _config['ikuai']['username'] = os.environ['IKUAI_USER']
+        if os.environ.get('IKUAI_PASS') and not _config['ikuai'].get('password'):
+            _config['ikuai']['password'] = os.environ['IKUAI_PASS']
+        if os.environ.get('PUSHME_KEY') and not _config['pushme'].get('push_key'):
+            _config['pushme']['push_key'] = os.environ['PUSHME_KEY']
     
     return _config
 
@@ -85,17 +172,30 @@ def save_config(config: dict):
     """保存配置到文件"""
     global _config
     _config = config
-    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
     
-    # 保存时排除敏感信息（如果环境变量已设置）
-    save_data = config.copy()
-    if os.environ.get('IKUAI_PASS'):
-        save_data['ikuai']['password'] = '***'
-    if os.environ.get('PUSHME_KEY'):
-        save_data['pushme']['push_key'] = '***'
+    config_dir = os.path.dirname(CONFIG_PATH)
+    print(f"[配置] CONFIG_PATH={CONFIG_PATH}, config_dir={config_dir}", flush=True)
     
-    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-        json.dump(save_data, f, indent=2, ensure_ascii=False)
+    if config_dir:
+        os.makedirs(config_dir, exist_ok=True)
+        print(f"[配置] 创建目录: {config_dir}", flush=True)
+    
+    # 加密敏感字段后保存
+    config_to_save = json.loads(json.dumps(config))  # 深拷贝
+    for field in SENSITIVE_FIELDS:
+        for section in ['ikuai', 'pushme']:
+            if section in config_to_save and field in config_to_save[section]:
+                value = config_to_save[section].get(field, '')
+                if value and not value.startswith('enc:'):
+                    config_to_save[section][field] = 'enc:' + encrypt_value(value)
+    
+    try:
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(config_to_save, f, indent=2, ensure_ascii=False)
+        print(f"[配置] 保存成功: {CONFIG_PATH}", flush=True)
+    except Exception as e:
+        print(f"[配置] 保存失败: {e}", flush=True)
+        raise
 
 
 def update_config(section: str, key: str, value):
