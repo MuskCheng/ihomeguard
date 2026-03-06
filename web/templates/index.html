@@ -1021,9 +1021,9 @@
                         <div class="label">今日上传</div>
                     </div>
                     <div class="stat-card">
-                        <div class="icon">📥</div>
-                        <div class="value download">{{ formatBytes(totalDownload) }}</div>
-                        <div class="label">今日下载</div>
+                        <div class="icon">🔌</div>
+                        <div class="value" :class="connectionClass">{{ currentConnections }}</div>
+                        <div class="label">当前连接数</div>
                     </div>
                     <div class="stat-card">
                         <div class="icon">📊</div>
@@ -1512,6 +1512,12 @@
                     if (this.currentConnections > threshold) return 'badge-danger';
                     if (this.currentConnections > threshold * 0.7) return 'badge-warning';
                     return 'badge-success';
+                },
+                connectionClass() {
+                    const threshold = this.config?.monitor?.total_connection_threshold || 500;
+                    if (this.currentConnections > threshold) return 'danger';
+                    if (this.currentConnections > threshold * 0.7) return 'warning';
+                    return 'primary';
                 }
             },
             methods: {
@@ -2021,23 +2027,39 @@
                     try {
                         const res = await axios.get(`/api/traffic/history?range=${this.trafficRange}`);
                         if (res.data.success && this.realtimeChart) {
-                            // 格式化时间标签
+                            // 根据时间范围决定标签格式
+                            const isLongRange = ['1d', '3d', '7d'].includes(this.trafficRange);
                             const labels = res.data.times.map(t => {
                                 // t 格式: "2026-03-06 14:30"
                                 const parts = t.split(' ');
-                                return parts.length > 1 ? parts[1] : t;
+                                if (parts.length > 1) {
+                                    if (isLongRange) {
+                                        // 长时间范围：显示 "03-06 14:30"
+                                        const datePart = parts[0].substring(5); // 去掉年份
+                                        return `${datePart} ${parts[1]}`;
+                                    } else {
+                                        return parts[1]; // 只显示时间
+                                    }
+                                }
+                                return t;
                             });
+
+                            // 根据数据量动态调整 maxTicksLimit
+                            const dataLength = labels.length;
+                            const maxTicks = Math.min(12, Math.max(4, Math.floor(dataLength / 10)));
 
                             this.realtimeChart.data.labels = labels;
                             this.realtimeChart.data.datasets[0].data = res.data.upload_speeds;
                             this.realtimeChart.data.datasets[1].data = res.data.download_speeds;
-                            this.realtimeChart.update('none');
+                            this.realtimeChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+                            this.realtimeChart.update();
 
                             // 更新连接数图表
                             if (this.connectionChart) {
                                 this.connectionChart.data.labels = labels;
                                 this.connectionChart.data.datasets[0].data = res.data.connection_counts;
-                                this.connectionChart.update('none');
+                                this.connectionChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+                                this.connectionChart.update();
                             }
 
                             // 更新当前连接数
