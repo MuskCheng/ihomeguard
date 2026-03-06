@@ -1,6 +1,6 @@
 <div align="center">
   
-  <img src="iHG.png" alt="iHomeGuard Logo" width="120" height="120">
+  <img src="docs/iHG.png" alt="iHomeGuard Logo" width="120" height="120">
   
   # iHomeGuard
   
