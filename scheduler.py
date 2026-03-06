@@ -99,6 +99,49 @@ def daily_stats_task():
         print(f"[统计错误] {e}")
 
 
+def init_daily_stats():
+    """初始化当日统计数据（启动时调用）"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # 检查今天是否已有统计数据
+        existing = storage.get_daily_stats(today)
+        if existing:
+            print(f"[统计初始化] {today} 已有统计数据，跳过")
+            return
+        
+        # 尝试从今日记录计算
+        records = storage.get_today_records()
+        if records:
+            unique_devices = set(r['mac'] for r in records)
+            total_upload = max(r['upload_bytes'] for r in records)
+            total_download = max(r['download_bytes'] for r in records)
+            max_connections = max(r['connections'] for r in records)
+            
+            storage.save_daily_stats(
+                date=today,
+                total_upload=total_upload,
+                total_download=total_download,
+                device_count=len(unique_devices),
+                max_connections=max_connections,
+                peak_device_count=len(unique_devices)
+            )
+            print(f"[统计初始化] {today} 数据已从现有记录生成")
+        else:
+            # 没有记录时，创建空的初始数据
+            storage.save_daily_stats(
+                date=today,
+                total_upload=0,
+                total_download=0,
+                device_count=0,
+                max_connections=0,
+                peak_device_count=0
+            )
+            print(f"[统计初始化] {today} 创建初始空数据")
+    except Exception as e:
+        print(f"[统计初始化错误] {e}")
+
+
 def format_bytes(bytes_val):
     """格式化字节数"""
     if not bytes_val:
@@ -128,8 +171,11 @@ def start_scheduler():
     hour, minute = map(int, report_time.split(':'))
     scheduler.add_job(daily_report_task, CronTrigger(hour=hour, minute=minute), id='daily_report')
     
-    # 每日统计任务（每天 23:55）
-    scheduler.add_job(daily_stats_task, CronTrigger(hour=23, minute=55), id='daily_stats')
+    # 统计任务（每小时执行一次）
+    scheduler.add_job(daily_stats_task, CronTrigger(minute=55), id='daily_stats')
+    
+    # 初始化当日统计数据
+    init_daily_stats()
     
     scheduler.start()
-    print(f"[调度] 采集间隔: {interval}秒, 保活间隔: {keepalive_interval}秒, 日报时间: {report_time}")
+    print(f"[调度] 采集间隔: {interval}秒, 保活间隔: {keepalive_interval}秒, 日报时间: {report_time}, 统计间隔: 每小时")
