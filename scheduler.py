@@ -85,24 +85,70 @@ def daily_stats_task():
     """每日统计任务"""
     try:
         today = datetime.now().strftime('%Y-%m-%d')
-        records = storage.get_today_records()
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
         
-        if records:
-            # 计算统计数据
-            unique_devices = set(r['mac'] for r in records)
-            total_upload = max(r['upload_bytes'] for r in records)
-            total_download = max(r['download_bytes'] for r in records)
-            max_connections = max(r['connections'] for r in records)
+        # 获取今天和昨天的在线记录
+        today_records = storage.get_today_records()
+        yesterday_records = storage.get_records_by_date(yesterday)
+        
+        # 计算今日增量流量
+        # 方法：对每个设备，取今天最后记录的累计值 - 昨天最后记录的累计值
+        # 如果昨天没有记录，则取今天最后记录 - 今天第一条记录
+        
+        # 按设备分组获取昨天的最后累计值
+        yesterday_last = {}
+        if yesterday_records:
+            for r in yesterday_records:
+                mac = r['mac']
+                if mac not in yesterday_last or r['recorded_at'] > yesterday_last[mac]['recorded_at']:
+                    yesterday_last[mac] = r
+        
+        # 按设备分组获取今天的最后和第一条记录
+        today_first = {}
+        today_last = {}
+        if today_records:
+            for r in today_records:
+                mac = r['mac']
+                if mac not in today_first or r['recorded_at'] < today_first[mac]['recorded_at']:
+                    today_first[mac] = r
+                if mac not in today_last or r['recorded_at'] > today_last[mac]['recorded_at']:
+                    today_last[mac] = r
+        
+        # 计算今日增量
+        total_upload = 0
+        total_download = 0
+        unique_devices = set()
+        max_connections = 0
+        
+        for mac, last_record in today_last.items():
+            unique_devices.add(mac)
+            max_connections = max(max_connections, last_record.get('connections', 0))
             
-            storage.save_daily_stats(
-                date=today,
-                total_upload=total_upload,
-                total_download=total_download,
-                device_count=len(unique_devices),
-                max_connections=max_connections,
-                peak_device_count=len(unique_devices)
-            )
-            print(f"[统计] {today} 数据已保存")
+            if mac in yesterday_last:
+                # 有昨天记录，计算增量
+                upload_delta = max(0, last_record['upload_bytes'] - yesterday_last[mac]['upload_bytes'])
+                download_delta = max(0, last_record['download_bytes'] - yesterday_last[mac]['download_bytes'])
+            else:
+                # 没有昨天记录，用今天最后 - 今天第一条
+                if mac in today_first:
+                    upload_delta = max(0, last_record['upload_bytes'] - today_first[mac]['upload_bytes'])
+                    download_delta = max(0, last_record['download_bytes'] - today_first[mac]['download_bytes'])
+                else:
+                    upload_delta = 0
+                    download_delta = 0
+            
+            total_upload += upload_delta
+            total_download += download_delta
+        
+        storage.save_daily_stats(
+            date=today,
+            total_upload=total_upload,
+            total_download=total_download,
+            device_count=len(unique_devices),
+            max_connections=max_connections,
+            peak_device_count=len(unique_devices)
+        )
+        print(f"[统计] {today} 数据已保存: 上传 {total_upload/1024/1024:.1f}MB, 下载 {total_download/1024/1024:.1f}MB")
     except Exception as e:
         print(f"[统计错误] {e}")
 
@@ -118,34 +164,68 @@ def init_daily_stats():
             print(f"[统计初始化] {today} 已有统计数据，跳过")
             return
         
-        # 尝试从今日记录计算
-        records = storage.get_today_records()
-        if records:
-            unique_devices = set(r['mac'] for r in records)
-            total_upload = max(r['upload_bytes'] for r in records)
-            total_download = max(r['download_bytes'] for r in records)
-            max_connections = max(r['connections'] for r in records)
+        # 获取昨天的统计数据用于计算增量
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        yesterday_stats = storage.get_daily_stats(yesterday)
+        yesterday_records = storage.get_records_by_date(yesterday) if not yesterday_stats else []
+        
+        # 获取今天的记录
+        today_records = storage.get_today_records()
+        
+        # 按设备分组获取昨天的最后累计值
+        yesterday_last = {}
+        if yesterday_records:
+            for r in yesterday_records:
+                mac = r['mac']
+                if mac not in yesterday_last or r['recorded_at'] > yesterday_last[mac]['recorded_at']:
+                    yesterday_last[mac] = r
+        
+        # 按设备分组获取今天的最后和第一条记录
+        today_first = {}
+        today_last = {}
+        if today_records:
+            for r in today_records:
+                mac = r['mac']
+                if mac not in today_first or r['recorded_at'] < today_first[mac]['recorded_at']:
+                    today_first[mac] = r
+                if mac not in today_last or r['recorded_at'] > today_last[mac]['recorded_at']:
+                    today_last[mac] = r
+        
+        # 计算今日增量
+        total_upload = 0
+        total_download = 0
+        unique_devices = set()
+        max_connections = 0
+        
+        for mac, last_record in today_last.items():
+            unique_devices.add(mac)
+            max_connections = max(max_connections, last_record.get('connections', 0))
             
-            storage.save_daily_stats(
-                date=today,
-                total_upload=total_upload,
-                total_download=total_download,
-                device_count=len(unique_devices),
-                max_connections=max_connections,
-                peak_device_count=len(unique_devices)
-            )
-            print(f"[统计初始化] {today} 数据已从现有记录生成")
-        else:
-            # 没有记录时，创建空的初始数据
-            storage.save_daily_stats(
-                date=today,
-                total_upload=0,
-                total_download=0,
-                device_count=0,
-                max_connections=0,
-                peak_device_count=0
-            )
-            print(f"[统计初始化] {today} 创建初始空数据")
+            if mac in yesterday_last:
+                # 有昨天记录，计算增量
+                upload_delta = max(0, last_record['upload_bytes'] - yesterday_last[mac]['upload_bytes'])
+                download_delta = max(0, last_record['download_bytes'] - yesterday_last[mac]['download_bytes'])
+            else:
+                # 没有昨天记录，用今天最后 - 今天第一条
+                if mac in today_first:
+                    upload_delta = max(0, last_record['upload_bytes'] - today_first[mac]['upload_bytes'])
+                    download_delta = max(0, last_record['download_bytes'] - today_first[mac]['download_bytes'])
+                else:
+                    upload_delta = 0
+                    download_delta = 0
+            
+            total_upload += upload_delta
+            total_download += download_delta
+        
+        storage.save_daily_stats(
+            date=today,
+            total_upload=total_upload,
+            total_download=total_download,
+            device_count=len(unique_devices),
+            max_connections=max_connections,
+            peak_device_count=len(unique_devices)
+        )
+        print(f"[统计初始化] {today} 数据已生成: 上传 {total_upload/1024/1024:.1f}MB, 下载 {total_download/1024/1024:.1f}MB")
     except Exception as e:
         print(f"[统计初始化错误] {e}")
 

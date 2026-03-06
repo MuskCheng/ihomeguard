@@ -1720,6 +1720,8 @@
                         this.ikuaiStatus = res.data;
                         if (res.data.success) {
                             this.connectionTested = true;
+                            // 连接成功后立即刷新设备数据
+                            await this.refreshDevices();
                         }
                     } catch (e) {
                         this.ikuaiStatus = { success: false, message: e.message };
@@ -2157,24 +2159,32 @@
                 this.loadConfig();
                 // 不在 mounted 时初始化图表，因为统计页面是 display:none
                 
-                // 设备刷新间隔 (3秒)
+                // 设备刷新间隔 (5秒)
                 setInterval(() => {
                     this.refreshDevices();
-                }, 3000);
+                }, 5000);
                 
                 // 流量历史刷新间隔 - 根据区间动态调整，短区间更频繁
                 setInterval(() => {
                     if (this.currentPage === 'stats') {
                         this.loadTrafficHistory();
                     }
-                }, 10000);  // 默认10秒刷新，在loadTrafficHistory中根据区间调整
+                }, 5000);  // 5秒刷新
                 
-                // 短区间(5m/1h)时额外快速刷新
+                // 统计数据刷新间隔（预测、周统计）
                 setInterval(() => {
-                    if (this.currentPage === 'stats' && ['5m', '1h'].includes(this.trafficRange)) {
-                        this.loadTrafficHistory();
+                    if (this.currentPage === 'stats') {
+                        this.loadPrediction();
+                        this.loadStats();
                     }
-                }, 5000);
+                }, 30000);  // 30秒刷新统计汇总
+                
+                // 告警刷新间隔
+                setInterval(() => {
+                    if (this.currentPage === 'alerts') {
+                        this.refreshAlerts();
+                    }
+                }, 10000);  // 10秒刷新告警
             }
         }).mount('#app');
     </script>

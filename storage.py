@@ -229,6 +229,16 @@ def get_today_records() -> list:
         ''', (today,))]
 
 
+def get_records_by_date(date: str) -> list:
+    """获取指定日期的记录"""
+    with get_db() as conn:
+        return [dict(row) for row in conn.execute('''
+            SELECT * FROM online_records 
+            WHERE date(recorded_at) = ?
+            ORDER BY recorded_at ASC
+        ''', (date,))]
+
+
 # ========== 统计操作 ==========
 
 def save_daily_stats(date: str, total_upload: int, total_download: int,
