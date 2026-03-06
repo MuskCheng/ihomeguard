@@ -28,3 +28,6 @@ config/config.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Build scripts (contains sensitive info)
+push.bat
