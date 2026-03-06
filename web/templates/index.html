@@ -1768,9 +1768,9 @@
                     Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
                     Chart.defaults.font.size = 12;
                     
-                    // 实时流量图
+                    // 实时流量图 - 只在未初始化时创建
                     const realtimeCtx = document.getElementById('realtimeChart');
-                    if (realtimeCtx) {
+                    if (realtimeCtx && !this.realtimeChart) {
                         this.realtimeChart = new Chart(realtimeCtx, {
                             type: 'line',
                             data: {
@@ -1849,9 +1849,9 @@
                         });
                     }
 
-                    // 连接数图表
+                    // 连接数图表 - 只在未初始化时创建
                     const connectionCtx = document.getElementById('connectionChart');
-                    if (connectionCtx) {
+                    if (connectionCtx && !this.connectionChart) {
                         this.connectionChart = new Chart(connectionCtx, {
                             type: 'line',
                             data: {
@@ -1902,9 +1902,9 @@
                         });
                     }
 
-                    // 流量趋势图
+                    // 流量趋势图 - 只在未初始化时创建
                     const trafficCtx = document.getElementById('trafficChart');
-                    if (trafficCtx) {
+                    if (trafficCtx && !this.trafficChart) {
                         this.trafficChart = new Chart(trafficCtx, {
                             type: 'bar',
                             data: {
@@ -1970,9 +1970,9 @@
                         });
                     }
                     
-                    // 设备统计图
+                    // 设备统计图 - 只在未初始化时创建
                     const deviceCtx = document.getElementById('deviceChart');
-                    if (deviceCtx) {
+                    if (deviceCtx && !this.deviceChart) {
                         this.deviceChart = new Chart(deviceCtx, {
                             type: 'line',
                             data: {
@@ -2118,9 +2118,13 @@
             watch: {
                 currentPage(newPage) {
                     if (newPage === 'stats') {
-                        this.loadStats();
-                        this.loadPrediction();
-                        this.loadTrafficHistory();
+                        // 延迟初始化统计页面图表，等待 DOM 渲染
+                        this.$nextTick(() => {
+                            this.initCharts();
+                            this.loadStats();
+                            this.loadPrediction();
+                            this.loadTrafficHistory();
+                        });
                     }
                     if (newPage === 'settings') {
                         this.loadDbStats();
