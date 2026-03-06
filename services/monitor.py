@@ -68,11 +68,13 @@ class MonitorService:
         for dev in online_devices:
             mac = dev.get('mac', '').upper()
             ip = dev.get('ip', '') or dev.get('ip_addr', '')
-            upload = int(dev.get('total_up', 0) or dev.get('upload', 0) or 0)
-            download = int(dev.get('total_down', 0) or dev.get('download', 0) or 0)
-            connections = int(dev.get('connect', 0) or dev.get('connections', 0) or 0)
-            upload_speed = int(dev.get('up', 0) or dev.get('upload_speed', 0) or 0)
-            download_speed = int(dev.get('down', 0) or dev.get('download_speed', 0) or 0)
+            # 累计流量：total_up/total_down 是累计值
+            upload = int(dev.get('total_up', 0) or 0)
+            download = int(dev.get('total_down', 0) or 0)
+            connections = int(dev.get('connect_num', 0) or dev.get('connections', 0) or 0)
+            # 实时速度：upload/download 字段是实时速度（bytes/s）
+            upload_speed = int(dev.get('upload', 0) or 0)
+            download_speed = int(dev.get('download', 0) or 0)
             hostname = dev.get('hostname', '') or dev.get('comment', '')
             
             current_devices.add(mac)
