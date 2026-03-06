@@ -1006,6 +1006,11 @@
                         <div class="label">在线设备</div>
                     </div>
                     <div class="stat-card">
+                        <div class="icon">🔌</div>
+                        <div class="value" :class="connectionClass">{{ totalConnections }}</div>
+                        <div class="label">连接数</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="icon">⬆️</div>
                         <div class="value upload">{{ formatSpeed(totalUploadSpeed) }}</div>
                         <div class="label">实时上传</div>
@@ -1019,11 +1024,6 @@
                         <div class="icon">📤</div>
                         <div class="value upload">{{ formatBytes(totalUpload) }}</div>
                         <div class="label">今日上传</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="icon">🔌</div>
-                        <div class="value" :class="connectionClass">{{ currentConnections }}</div>
-                        <div class="label">当前连接数</div>
                     </div>
                     <div class="stat-card">
                         <div class="icon">📊</div>
@@ -1149,10 +1149,10 @@
                     <div class="card-header">
                         <span class="card-title-icon">🔌</span>
                         连接数监控
-                        <span class="card-badge" :class="connectionBadgeClass">{{ currentConnections }} 连接</span>
+                        <span class="card-badge" :class="connectionBadgeClass">{{ currentConnections || totalConnections }} 连接</span>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container" style="height: 200px;">
+                        <div class="chart-container chart-large">
                             <canvas id="connectionChart"></canvas>
                         </div>
                     </div>
@@ -1507,16 +1507,19 @@
                 totalUpload() { return this.devices.reduce((sum, d) => sum + (d.total_upload || 0), 0); },
                 totalDownload() { return this.devices.reduce((sum, d) => sum + (d.total_download || 0), 0); },
                 totalTraffic() { return this.totalUpload + this.totalDownload; },
+                totalConnections() { return this.devices.reduce((sum, d) => sum + (d.connections || 0), 0); },
                 connectionBadgeClass() {
                     const threshold = this.config?.monitor?.total_connection_threshold || 500;
-                    if (this.currentConnections > threshold) return 'badge-danger';
-                    if (this.currentConnections > threshold * 0.7) return 'badge-warning';
+                    const conn = this.currentConnections || this.totalConnections;
+                    if (conn > threshold) return 'badge-danger';
+                    if (conn > threshold * 0.7) return 'badge-warning';
                     return 'badge-success';
                 },
                 connectionClass() {
                     const threshold = this.config?.monitor?.total_connection_threshold || 500;
-                    if (this.currentConnections > threshold) return 'danger';
-                    if (this.currentConnections > threshold * 0.7) return 'warning';
+                    const conn = this.currentConnections || this.totalConnections;
+                    if (conn > threshold) return 'danger';
+                    if (conn > threshold * 0.7) return 'warning';
                     return 'primary';
                 }
             },
@@ -2038,28 +2041,35 @@
                                         const datePart = parts[0].substring(5); // 去掉年份
                                         return `${datePart} ${parts[1]}`;
                                     } else {
-                                        return parts[1]; // 只显示时间
+                                        // 短时间范围：只显示 "14:30"
+                                        return parts[1];
                                     }
                                 }
                                 return t;
                             });
 
-                            // 根据数据量动态调整 maxTicksLimit
+                            // 根据数据量和时间范围动态调整 maxTicksLimit
                             const dataLength = labels.length;
-                            const maxTicks = Math.min(12, Math.max(4, Math.floor(dataLength / 10)));
+                            let maxTicks;
+                            if (isLongRange) {
+                                maxTicks = Math.min(15, Math.max(8, Math.floor(dataLength / 20)));
+                            } else {
+                                maxTicks = Math.min(10, Math.max(5, Math.floor(dataLength / 8)));
+                            }
 
+                            // 更新实时流量图表
                             this.realtimeChart.data.labels = labels;
                             this.realtimeChart.data.datasets[0].data = res.data.upload_speeds;
                             this.realtimeChart.data.datasets[1].data = res.data.download_speeds;
                             this.realtimeChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-                            this.realtimeChart.update();
+                            this.realtimeChart.update('active');
 
                             // 更新连接数图表
                             if (this.connectionChart) {
                                 this.connectionChart.data.labels = labels;
                                 this.connectionChart.data.datasets[0].data = res.data.connection_counts;
                                 this.connectionChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-                                this.connectionChart.update();
+                                this.connectionChart.update('active');
                             }
 
                             // 更新当前连接数
