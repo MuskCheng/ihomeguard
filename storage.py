@@ -135,6 +135,29 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_online_sessions_online ON online_sessions(online_at);
             CREATE INDEX IF NOT EXISTS idx_traffic_history_time ON traffic_history(timestamp);
         ''')
+        
+        # 数据库迁移：检查并添加缺失的列
+        _migrate_database(conn)
+
+
+def _migrate_database(conn):
+    """数据库迁移：添加缺失的列"""
+    migrations = [
+        # (表名, 列名, 列定义)
+        ('devices', 'total_online_minutes', 'INTEGER DEFAULT 0'),
+        ('devices', 'device_type', "TEXT DEFAULT 'unknown'"),
+    ]
+    
+    for table, column, definition in migrations:
+        try:
+            # 检查列是否存在
+            cursor = conn.execute(f"PRAGMA table_info({table})")
+            columns = [row[1] for row in cursor.fetchall()]
+            if column not in columns:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+                print(f"[数据库迁移] {table}.{column} 列已添加")
+        except Exception as e:
+            print(f"[数据库迁移警告] {table}.{column}: {e}")
 
 
 # ========== 设备操作 ==========
