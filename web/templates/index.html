@@ -709,6 +709,36 @@
             margin-left: auto;
         }
         
+        /* 时间范围选择器 */
+        .time-range-selector {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+        
+        .range-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .range-btn:hover {
+            background: rgba(6, 182, 212, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        
+        .range-btn.active {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-color: transparent;
+            color: white;
+        }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.6; }
@@ -1070,6 +1100,13 @@
                         <span class="card-title-icon">📡</span>
                         实时流量监控
                         <span class="card-badge live-badge">LIVE</span>
+                        <div class="time-range-selector">
+                            <button v-for="r in timeRanges" :key="r.value" 
+                                    :class="['range-btn', { active: trafficRange === r.value }]"
+                                    @click="setTrafficRange(r.value)">
+                                {{ r.label }}
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="chart-container chart-large">
@@ -1343,6 +1380,15 @@
                     deviceChart: null,
                     realtimeChart: null,
                     realtimeData: { labels: [], upload: [], download: [] },
+                    trafficRange: '1h',
+                    timeRanges: [
+                        { value: '1h', label: '1小时' },
+                        { value: '6h', label: '6小时' },
+                        { value: '12h', label: '12小时' },
+                        { value: '1d', label: '1天' },
+                        { value: '3d', label: '3天' },
+                        { value: '7d', label: '7天' }
+                    ],
                     isDarkMode: true
                 };
             },
@@ -1459,7 +1505,6 @@
                     try {
                         const res = await axios.get('/api/devices');
                         this.devices = res.data.devices || [];
-                        this.updateRealtimeChart();
                     } catch (e) {
                         console.error('获取设备失败:', e);
                     }
@@ -1771,24 +1816,31 @@
                     }
                 },
                 updateRealtimeChart() {
-                    const now = new Date();
-                    const timeLabel = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
-                    
-                    this.realtimeData.labels.push(timeLabel);
-                    this.realtimeData.upload.push(this.totalUploadSpeed);
-                    this.realtimeData.download.push(this.totalDownloadSpeed);
-                    
-                    if (this.realtimeData.labels.length > 30) {
-                        this.realtimeData.labels.shift();
-                        this.realtimeData.upload.shift();
-                        this.realtimeData.download.shift();
-                    }
-                    
-                    if (this.realtimeChart) {
-                        this.realtimeChart.data.labels = this.realtimeData.labels;
-                        this.realtimeChart.data.datasets[0].data = this.realtimeData.upload;
-                        this.realtimeChart.data.datasets[1].data = this.realtimeData.download;
-                        this.realtimeChart.update('none');
+                    // 刷新设备数据后重新加载流量历史
+                    this.loadTrafficHistory();
+                },
+                async setTrafficRange(range) {
+                    this.trafficRange = range;
+                    await this.loadTrafficHistory();
+                },
+                async loadTrafficHistory() {
+                    try {
+                        const res = await axios.get(`/api/traffic/history?range=${this.trafficRange}`);
+                        if (res.data.success && this.realtimeChart) {
+                            // 格式化时间标签
+                            const labels = res.data.times.map(t => {
+                                // t 格式: "2026-03-06 14:30"
+                                const parts = t.split(' ');
+                                return parts.length > 1 ? parts[1] : t;
+                            });
+                            
+                            this.realtimeChart.data.labels = labels;
+                            this.realtimeChart.data.datasets[0].data = res.data.upload_speeds;
+                            this.realtimeChart.data.datasets[1].data = res.data.download_speeds;
+                            this.realtimeChart.update('none');
+                        }
+                    } catch (e) {
+                        console.error('加载流量历史失败:', e);
                     }
                 },
                 async loadStats() {
@@ -1817,6 +1869,7 @@
                     if (newPage === 'stats') {
                         this.loadStats();
                         this.loadPrediction();
+                        this.loadTrafficHistory();
                     }
                 }
             },
@@ -1827,11 +1880,18 @@
                 this.loadConfig();
                 this.$nextTick(() => {
                     this.initCharts();
+                    this.loadTrafficHistory();
                 });
                 
+                // 设备刷新间隔 (3秒)
                 setInterval(() => {
                     this.refreshDevices();
-                }, 10000);
+                }, 3000);
+                
+                // 流量历史刷新间隔 (30秒)
+                setInterval(() => {
+                    this.loadTrafficHistory();
+                }, 30000);
             }
         }).mount('#app');
     </script>

@@ -116,6 +116,15 @@ def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             
+            -- 流量历史表（实时监控数据）
+            CREATE TABLE IF NOT EXISTS traffic_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                upload_speed INTEGER DEFAULT 0,
+                download_speed INTEGER DEFAULT 0,
+                device_count INTEGER DEFAULT 0
+            );
+            
             -- 索引
             CREATE INDEX IF NOT EXISTS idx_devices_mac ON devices(mac);
             CREATE INDEX IF NOT EXISTS idx_online_records_mac ON online_records(mac);
@@ -124,6 +133,7 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_device_events_mac ON device_events(mac);
             CREATE INDEX IF NOT EXISTS idx_online_sessions_mac ON online_sessions(mac);
             CREATE INDEX IF NOT EXISTS idx_online_sessions_online ON online_sessions(online_at);
+            CREATE INDEX IF NOT EXISTS idx_traffic_history_time ON traffic_history(timestamp);
         ''')
 
 
@@ -229,6 +239,41 @@ def get_stats_range(start_date: str, end_date: str) -> list:
             WHERE date BETWEEN ? AND ?
             ORDER BY date
         ''', (start_date, end_date))]
+
+
+# ========== 流量历史操作 ==========
+
+def save_traffic_snapshot(upload_speed: int, download_speed: int, device_count: int):
+    """保存流量快照"""
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO traffic_history (timestamp, upload_speed, download_speed, device_count)
+            VALUES (datetime('now', 'localtime'), ?, ?, ?)
+        ''', (upload_speed, download_speed, device_count))
+
+
+def get_traffic_history(hours: int = 1) -> list:
+    """获取指定小时范围内的流量历史"""
+    with get_db() as conn:
+        return [dict(row) for row in conn.execute('''
+            SELECT 
+                strftime('%Y-%m-%d %H:%M', timestamp) as time,
+                upload_speed,
+                download_speed,
+                device_count
+            FROM traffic_history 
+            WHERE timestamp >= datetime('now', 'localtime', ?)
+            ORDER BY timestamp ASC
+        ''', (f'-{hours} hours',))]
+
+
+def cleanup_traffic_history(days: int = 7):
+    """清理超过指定天数的流量历史数据"""
+    with get_db() as conn:
+        conn.execute('''
+            DELETE FROM traffic_history 
+            WHERE timestamp < datetime('now', 'localtime', ?)
+        ''', (f'-{days} days',))
 
 
 # ========== 告警操作 ==========

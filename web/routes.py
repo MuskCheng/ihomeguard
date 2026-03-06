@@ -249,6 +249,52 @@ def get_traffic_prediction():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ========== 流量历史 API ==========
+
+@app.route('/api/traffic/history')
+def get_traffic_history():
+    """获取流量历史数据"""
+    try:
+        # 支持的时间范围: 1h, 6h, 12h, 1d, 3d, 7d
+        range_param = request.args.get('range', '1h')
+        
+        # 转换为小时数
+        hours_map = {
+            '1h': 1,
+            '6h': 6,
+            '12h': 12,
+            '1d': 24,
+            '3d': 72,
+            '7d': 168
+        }
+        hours = hours_map.get(range_param, 1)
+        
+        history = storage.get_traffic_history(hours)
+        
+        # 格式化返回数据
+        times = []
+        upload_speeds = []
+        download_speeds = []
+        device_counts = []
+        
+        for record in history:
+            times.append(record['time'])
+            upload_speeds.append(record['upload_speed'])
+            download_speeds.append(record['download_speed'])
+            device_counts.append(record['device_count'])
+        
+        return jsonify({
+            'success': True,
+            'range': range_param,
+            'times': times,
+            'upload_speeds': upload_speeds,
+            'download_speeds': download_speeds,
+            'device_counts': device_counts
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ========== 配置管理 API ==========
 
 @app.route('/api/config')

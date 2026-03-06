@@ -36,6 +36,13 @@ def collect_task():
               f"上行: {format_bytes(result['total_upload'])}, "
               f"下行: {format_bytes(result['total_download'])}")
         
+        # 保存流量快照用于实时监控
+        storage.save_traffic_snapshot(
+            result.get('total_upload_speed', 0),
+            result.get('total_download_speed', 0),
+            result.get('device_count', 0)
+        )
+        
         # 实时告警推送
         if result.get('alerts'):
             cfg = config.get_config()
@@ -142,6 +149,15 @@ def init_daily_stats():
         print(f"[统计初始化错误] {e}")
 
 
+def cleanup_traffic_history_task():
+    """清理流量历史数据（保留7天）"""
+    try:
+        deleted = storage.cleanup_traffic_history(days=7)
+        print(f"[清理] 流量历史数据已清理")
+    except Exception as e:
+        print(f"[清理错误] {e}")
+
+
 def format_bytes(bytes_val):
     """格式化字节数"""
     if not bytes_val:
@@ -173,6 +189,9 @@ def start_scheduler():
     
     # 统计任务（每小时执行一次）
     scheduler.add_job(daily_stats_task, CronTrigger(minute=55), id='daily_stats')
+    
+    # 流量历史清理任务（每天凌晨3点）
+    scheduler.add_job(cleanup_traffic_history_task, CronTrigger(hour=3, minute=0), id='cleanup_traffic')
     
     # 初始化当日统计数据
     init_daily_stats()

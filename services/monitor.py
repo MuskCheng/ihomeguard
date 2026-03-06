@@ -62,6 +62,8 @@ class MonitorService:
         total_upload = 0
         total_download = 0
         max_connections = 0
+        total_upload_speed = 0  # 实时上传速度汇总
+        total_download_speed = 0  # 实时下载速度汇总
         
         for dev in online_devices:
             mac = dev.get('mac', '').upper()
@@ -77,6 +79,8 @@ class MonitorService:
             total_upload = max(total_upload, upload)
             total_download = max(total_download, download)
             max_connections = max(max_connections, connections)
+            total_upload_speed += upload_speed
+            total_download_speed += download_speed
             
             # 更新设备信息
             storage.upsert_device(mac, ip, hostname)
@@ -104,6 +108,8 @@ class MonitorService:
             'device_count': len(online_devices),
             'total_upload': total_upload,
             'total_download': total_download,
+            'total_upload_speed': total_upload_speed,
+            'total_download_speed': total_download_speed,
             'max_connections': max_connections,
             'alerts': alerts
         }
