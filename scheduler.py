@@ -40,7 +40,8 @@ def collect_task():
         storage.save_traffic_snapshot(
             result.get('total_upload_speed', 0),
             result.get('total_download_speed', 0),
-            result.get('device_count', 0)
+            result.get('device_count', 0),
+            result.get('total_connections', 0)
         )
         
         # 实时告警推送

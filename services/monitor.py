@@ -62,6 +62,7 @@ class MonitorService:
         total_upload = 0
         total_download = 0
         max_connections = 0
+        total_connections = 0  # 总连接数汇总
         total_upload_speed = 0  # 实时上传速度汇总
         total_download_speed = 0  # 实时下载速度汇总
         
@@ -81,6 +82,7 @@ class MonitorService:
             total_upload = max(total_upload, upload)
             total_download = max(total_download, download)
             max_connections = max(max_connections, connections)
+            total_connections += connections  # 累加总连接数
             total_upload_speed += upload_speed
             total_download_speed += download_speed
             
@@ -105,7 +107,7 @@ class MonitorService:
             'total_upload': total_upload,
             'total_download': total_download
         })
-        
+
         return {
             'device_count': len(online_devices),
             'total_upload': total_upload,
@@ -113,6 +115,7 @@ class MonitorService:
             'total_upload_speed': total_upload_speed,
             'total_download_speed': total_download_speed,
             'max_connections': max_connections,
+            'total_connections': total_connections,
             'alerts': alerts
         }
     

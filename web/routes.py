@@ -277,20 +277,23 @@ def get_traffic_history():
         upload_speeds = []
         download_speeds = []
         device_counts = []
-        
+        connection_counts = []
+
         for record in history:
             times.append(record['time'])
             upload_speeds.append(record['upload_speed'])
             download_speeds.append(record['download_speed'])
             device_counts.append(record['device_count'])
-        
+            connection_counts.append(record.get('connection_count', 0))
+
         return jsonify({
             'success': True,
             'range': range_param,
             'times': times,
             'upload_speeds': upload_speeds,
             'download_speeds': download_speeds,
-            'device_counts': device_counts
+            'device_counts': device_counts,
+            'connection_counts': connection_counts
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

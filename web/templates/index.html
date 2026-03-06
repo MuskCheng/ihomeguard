@@ -1130,7 +1130,7 @@
                         实时流量监控
                         <span class="card-badge live-badge">LIVE</span>
                         <div class="time-range-selector">
-                            <button v-for="r in timeRanges" :key="r.value" 
+                            <button v-for="r in timeRanges" :key="r.value"
                                     :class="['range-btn', { active: trafficRange === r.value }]"
                                     @click="setTrafficRange(r.value)">
                                 {{ r.label }}
@@ -1140,6 +1140,20 @@
                     <div class="card-body">
                         <div class="chart-container chart-large">
                             <canvas id="realtimeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 连接数监控 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title-icon">🔌</span>
+                        连接数监控
+                        <span class="card-badge" :class="connectionBadgeClass">{{ currentConnections }} 连接</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="connectionChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1378,6 +1392,16 @@
                                     <input type="number" class="form-control" v-model="config.monitor.download_speed_threshold_kbps" placeholder="默认51200（50MB/s）">
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>单设备连接数告警阈值</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.high_connection_threshold" placeholder="默认500">
+                                </div>
+                                <div class="form-group">
+                                    <label>总连接数告警阈值</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.total_connection_threshold" placeholder="默认1000">
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <label><input type="checkbox" v-model="config.monitor.alert_new_device"> 新设备接入告警</label>
                             </div>
@@ -1447,7 +1471,7 @@
                     config: {
                         ikuai: { local_url: '', username: '', password: '' },
                         pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
-                                                            monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200 }                    },
+                                                            monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200, high_connection_threshold: 500, total_connection_threshold: 1000 }                    },
                     prediction: null,
                     pushChannel: 'pushme',
                     ikuaiStatus: null,
@@ -1458,8 +1482,10 @@
                     trafficChart: null,
                     deviceChart: null,
                     realtimeChart: null,
+                    connectionChart: null,
                     realtimeData: { labels: [], upload: [], download: [] },
                     trafficRange: '5m',
+                    currentConnections: 0,
                     timeRanges: [
                         { value: '5m', label: '5分钟' },
                         { value: '1h', label: '1小时' },
@@ -1480,7 +1506,13 @@
                 totalDownloadSpeed() { return this.devices.reduce((sum, d) => sum + (d.download_speed || 0), 0); },
                 totalUpload() { return this.devices.reduce((sum, d) => sum + (d.total_upload || 0), 0); },
                 totalDownload() { return this.devices.reduce((sum, d) => sum + (d.total_download || 0), 0); },
-                totalTraffic() { return this.totalUpload + this.totalDownload; }
+                totalTraffic() { return this.totalUpload + this.totalDownload; },
+                connectionBadgeClass() {
+                    const threshold = this.config?.monitor?.total_connection_threshold || 500;
+                    if (this.currentConnections > threshold) return 'badge-danger';
+                    if (this.currentConnections > threshold * 0.7) return 'badge-warning';
+                    return 'badge-success';
+                }
             },
             methods: {
                 toggleTheme() {
@@ -1793,7 +1825,60 @@
                             }
                         });
                     }
-                    
+
+                    // 连接数图表
+                    const connectionCtx = document.getElementById('connectionChart');
+                    if (connectionCtx) {
+                        this.connectionChart = new Chart(connectionCtx, {
+                            type: 'line',
+                            data: {
+                                labels: [],
+                                datasets: [{
+                                    label: '连接数',
+                                    data: [],
+                                    borderColor: colors.purple,
+                                    backgroundColor: colors.purple + '20',
+                                    fill: true,
+                                    tension: 0.4,
+                                    borderWidth: 2,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: { color: colors.textColor },
+                                        title: { display: true, text: '连接数', color: colors.textColor },
+                                        grid: { color: colors.gridColor }
+                                    },
+                                    x: {
+                                        title: { display: true, text: '时间', color: colors.textColor },
+                                        ticks: { color: colors.textColor, maxTicksLimit: 10 },
+                                        grid: { color: colors.gridColor }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                        labels: {
+                                            color: colors.textColor,
+                                            usePointStyle: true,
+                                            pointStyle: 'circle'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
                     // 流量趋势图
                     const trafficCtx = document.getElementById('trafficChart');
                     if (trafficCtx) {
@@ -1942,11 +2027,22 @@
                                 const parts = t.split(' ');
                                 return parts.length > 1 ? parts[1] : t;
                             });
-                            
+
                             this.realtimeChart.data.labels = labels;
                             this.realtimeChart.data.datasets[0].data = res.data.upload_speeds;
                             this.realtimeChart.data.datasets[1].data = res.data.download_speeds;
                             this.realtimeChart.update('none');
+
+                            // 更新连接数图表
+                            if (this.connectionChart) {
+                                this.connectionChart.data.labels = labels;
+                                this.connectionChart.data.datasets[0].data = res.data.connection_counts;
+                                this.connectionChart.update('none');
+                            }
+
+                            // 更新当前连接数
+                            const counts = res.data.connection_counts;
+                            this.currentConnections = counts.length > 0 ? counts[counts.length - 1] : 0;
                         }
                     } catch (e) {
                         console.error('加载流量历史失败:', e);

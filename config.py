@@ -161,6 +161,7 @@ def get_default_config():
             "traffic_threshold_gb": 10,
             "long_online_hours": 24,
             "high_connection_threshold": 500,
+            "total_connection_threshold": 1000,
             "session_timeout": 120,
             "upload_speed_threshold_kbps": 10240,
             "download_speed_threshold_kbps": 51200

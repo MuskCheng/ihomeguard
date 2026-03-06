@@ -146,8 +146,9 @@ def _migrate_database(conn):
         # (表名, 列名, 列定义)
         ('devices', 'total_online_minutes', 'INTEGER DEFAULT 0'),
         ('devices', 'device_type', "TEXT DEFAULT 'unknown'"),
+        ('traffic_history', 'connection_count', 'INTEGER DEFAULT 0'),
     ]
-    
+
     for table, column, definition in migrations:
         try:
             # 检查列是否存在
@@ -266,25 +267,26 @@ def get_stats_range(start_date: str, end_date: str) -> list:
 
 # ========== 流量历史操作 ==========
 
-def save_traffic_snapshot(upload_speed: int, download_speed: int, device_count: int):
+def save_traffic_snapshot(upload_speed: int, download_speed: int, device_count: int, connection_count: int = 0):
     """保存流量快照"""
     with get_db() as conn:
         conn.execute('''
-            INSERT INTO traffic_history (timestamp, upload_speed, download_speed, device_count)
-            VALUES (datetime('now', 'localtime'), ?, ?, ?)
-        ''', (upload_speed, download_speed, device_count))
+            INSERT INTO traffic_history (timestamp, upload_speed, download_speed, device_count, connection_count)
+            VALUES (datetime('now', 'localtime'), ?, ?, ?, ?)
+        ''', (upload_speed, download_speed, device_count, connection_count))
 
 
 def get_traffic_history(hours: int = 1) -> list:
     """获取指定小时范围内的流量历史"""
     with get_db() as conn:
         return [dict(row) for row in conn.execute('''
-            SELECT 
+            SELECT
                 strftime('%Y-%m-%d %H:%M', timestamp) as time,
                 upload_speed,
                 download_speed,
-                device_count
-            FROM traffic_history 
+                device_count,
+                connection_count
+            FROM traffic_history
             WHERE timestamp >= datetime('now', 'localtime', ?)
             ORDER BY timestamp ASC
         ''', (f'-{hours} hours',))]
@@ -337,6 +339,16 @@ def get_recent_alerts_by_type(alert_type: str, mac: str, minutes: int = 10) -> l
             SELECT * FROM alerts
             WHERE alert_type = ? AND mac = ? AND created_at >= datetime('now', ?)
         ''', (alert_type, mac.upper(), f'-{minutes} minutes')).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_recent_alerts_by_type_all(alert_type: str, minutes: int = 10) -> list:
+    """检查指定类型在最近N分钟内是否已有告警（不限定设备）"""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT * FROM alerts
+            WHERE alert_type = ? AND created_at >= datetime('now', ?)
+        ''', (alert_type, f'-{minutes} minutes')).fetchall()
         return [dict(row) for row in rows]
 
 

@@ -9,13 +9,14 @@ import storage
 
 class AlerterService:
     """告警检测服务"""
-    
+
     def __init__(self, config: dict):
         self.config = config
         self.traffic_threshold_gb = config.get('traffic_threshold_gb', 10)
         self.alert_new_device = config.get('alert_new_device', True)
         self.long_online_hours = config.get('long_online_hours', 24)
         self.high_connection_threshold = config.get('high_connection_threshold', 500)
+        self.total_connection_threshold = config.get('total_connection_threshold', 1000)
         # 实时速度阈值（KB/s），默认上传10MB/s，下载50MB/s
         self.upload_speed_threshold = config.get('upload_speed_threshold_kbps', 10240) * 1024
         self.download_speed_threshold = config.get('download_speed_threshold_kbps', 51200) * 1024
@@ -23,22 +24,25 @@ class AlerterService:
     def check_all(self, online_devices: List[dict], collect_data: dict) -> List[dict]:
         """执行所有告警检测"""
         alerts = []
-        
+
         # 1. 流量阈值检测
         alerts.extend(self._check_traffic_threshold(online_devices))
-        
+
         # 2. 长时间在线检测
         alerts.extend(self._check_long_online(online_devices))
-        
-        # 3. 高连接数检测
+
+        # 3. 高连接数检测（单设备）
         alerts.extend(self._check_high_connections(online_devices))
-        
+
         # 4. 异常流量突增检测
         alerts.extend(self._check_traffic_spike(collect_data))
-        
+
         # 5. 实时速度阈值检测
         alerts.extend(self._check_speed_threshold(online_devices))
-        
+
+        # 6. 总连接数告警
+        alerts.extend(self._check_total_connections(online_devices))
+
         return alerts
     
     def check_offline_devices(self, current_devices: set, previous_devices: set) -> List[dict]:
@@ -250,5 +254,35 @@ class AlerterService:
                         'mac': mac,
                         'message': f'{alias or mac[:8]} 下载速度异常: {speed_mbps:.2f} MB/s'
                     })
+
+        return alerts
+
+    def _check_total_connections(self, devices: List[dict]) -> List[dict]:
+        """检测总连接数超阈值"""
+        alerts = []
+
+        # 计算总连接数
+        total_connections = 0
+        for dev in devices:
+            connections = int(dev.get('connect_num', 0) or dev.get('connect', 0) or 0)
+            total_connections += connections
+
+        # 检查是否超阈值
+        if total_connections > self.total_connection_threshold:
+            # 检查是否最近10分钟已告警过
+            recent_alerts = storage.get_recent_alerts_by_type_all('high_total_connections', minutes=10)
+            if not recent_alerts:
+                alert_id = storage.add_alert(
+                    alert_type='high_total_connections',
+                    severity='warning',
+                    mac='',
+                    message=f'总连接数异常: {total_connections} 个连接'
+                )
+                alerts.append({
+                    'id': alert_id,
+                    'type': 'high_total_connections',
+                    'mac': '',
+                    'message': f'总连接数异常: {total_connections} 个连接'
+                })
 
         return alerts
