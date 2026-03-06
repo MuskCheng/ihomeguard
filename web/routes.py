@@ -205,12 +205,13 @@ def get_today_stats():
 def get_traffic_prediction():
     """流量趋势预测"""
     from datetime import datetime, timedelta
+    import calendar
     
     try:
         # 获取本月已过天数
         now = datetime.now()
         day_of_month = now.day
-        days_in_month = 31  # 简化处理
+        days_in_month = calendar.monthrange(now.year, now.month)[1]  # 获取当月实际天数
         
         # 获取本月统计数据
         start_date = now.replace(day=1).strftime('%Y-%m-%d')
@@ -260,7 +261,7 @@ def get_traffic_history():
         
         # 转换为小时数（支持分钟）
         hours_map = {
-            '5m': 5/60,   # 5分钟
+            '5m': 1,      # 5分钟 → 改为1小时，确保有足够数据
             '1h': 1,
             '6h': 6,
             '12h': 12,

@@ -48,7 +48,8 @@ def _lookup_local(oui: str) -> str:
                     parts = line.strip().split('|', 1)
                     if len(parts) > 1:
                         return parts[1]
-    except:
+    except Exception as e:
+        print(f"[厂商] 本地缓存读取失败: {e}")
         pass
     
     return None
@@ -61,7 +62,8 @@ def _lookup_online(oui: str) -> str:
         resp = requests.get(f"https://api.macvendors.com/{oui}", timeout=5)
         if resp.status_code == 200:
             return resp.text.strip()
-    except:
+    except Exception as e:
+        print(f"[厂商] 在线查询失败: {oui} - {e}")
         pass
     
     return None

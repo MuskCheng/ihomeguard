@@ -38,8 +38,9 @@ def decrypt_value(value: str) -> str:
         _encryptor = _get_encryption_key()
     try:
         return _encryptor.decrypt(value.encode()).decode()
-    except:
+    except Exception as e:
         # 如果解密失败，可能是未加密的旧数据
+        print(f"[配置] 解密失败: {e}")
         return value
 
 # 智能检测运行环境，选择正确的配置路径
@@ -52,7 +53,7 @@ def _is_docker():
     try:
         with open('/proc/1/cgroup', 'r') as f:
             return 'docker' in f.read()
-    except:
+    except Exception:
         pass
     # Windows 上肯定不是 Docker 容器
     if os.name == 'nt':
@@ -124,15 +125,20 @@ def get_config():
                     if encrypted and encrypted.startswith('enc:'):
                         _config[section][field] = decrypt_value(encrypted[4:])
         
-        # 环境变量覆盖（仅当配置文件中对应值为空时）
-        if os.environ.get('IKUAI_URL') and not _config['ikuai'].get('local_url'):
+        # 环境变量覆盖（优先级高于配置文件）
+        if os.environ.get('IKUAI_URL'):
             _config['ikuai']['local_url'] = os.environ['IKUAI_URL']
-        if os.environ.get('IKUAI_USER') and not _config['ikuai'].get('username'):
+        if os.environ.get('IKUAI_USER'):
             _config['ikuai']['username'] = os.environ['IKUAI_USER']
-        if os.environ.get('IKUAI_PASS') and not _config['ikuai'].get('password'):
+        if os.environ.get('IKUAI_PASS'):
             _config['ikuai']['password'] = os.environ['IKUAI_PASS']
-        if os.environ.get('PUSHME_KEY') and not _config['pushme'].get('push_key'):
+        if os.environ.get('PUSHME_KEY'):
             _config['pushme']['push_key'] = os.environ['PUSHME_KEY']
+        
+        # 如果通过环境变量提供了完整配置，标记为已验证
+        if (os.environ.get('IKUAI_URL') and os.environ.get('IKUAI_USER') and 
+            os.environ.get('IKUAI_PASS')):
+            _config['ikuai']['connection_validated'] = True
     
     return _config
 
@@ -155,7 +161,7 @@ def get_default_config():
             "enabled": True
         },
         "monitor": {
-            "collect_interval": 300,
+            "collect_interval": 5,
             "report_time": "07:00",
             "alert_new_device": True,
             "traffic_threshold_gb": 10,

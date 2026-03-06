@@ -350,7 +350,7 @@ POST /Action/login
     "enabled": true
   },
   "monitor": {
-    "collect_interval": 300,
+    "collect_interval": 5,
     "report_time": "21:00",
     "alert_new_device": true,
     "traffic_threshold_gb": 10,
@@ -474,7 +474,7 @@ python app.py
 
 ### 8.2 性能建议
 
-1. **采集间隔**: 建议 300 秒（5分钟），避免频繁请求
+1. **采集间隔**: 建议 5 秒（实时监控），可根据需要调整
 2. **数据清理**: 定期清理超过 30 天的历史数据
 3. **数据库**: 定期执行 `VACUUM` 压缩数据库
 

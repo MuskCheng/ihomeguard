@@ -580,9 +580,14 @@ def cleanup_old_daily_stats(days: int = 365):
 def vacuum_database():
     """执行数据库 VACUUM 操作，回收空间"""
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('VACUUM')
-    conn.close()
-    print("[数据库] VACUUM 完成，空间已回收")
+    try:
+        conn.execute('VACUUM')
+        print("[数据库] VACUUM 完成，空间已回收")
+    except Exception as e:
+        print(f"[数据库] VACUUM 失败: {e}")
+        raise
+    finally:
+        conn.close()
 
 
 def get_database_stats() -> dict:

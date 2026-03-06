@@ -154,7 +154,8 @@ class AlerterService:
                                     'mac': mac,
                                     'message': f'{alias or mac[:8]} 已在线 {online_hours:.1f} 小时'
                                 })
-                except:
+                except Exception as e:
+                    print(f"[告警] 检查长在线异常: {mac} - {e}")
                     pass
         
         return alerts

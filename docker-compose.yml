@@ -6,11 +6,14 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
-      - IKUAI_URL=http://192.168.1.1
-      - IKUAI_USER=monitor
-      - IKUAI_PASS=your_password
-      - PUSHME_KEY=your_pushme_key
+      # 爱快路由器配置（可选，也可通过 Web 界面配置）
+      # - IKUAI_URL=http://192.168.1.1
+      # - IKUAI_USER=monitor
+      # - IKUAI_PASS=your_password
+      # PushMe 推送配置（可选）
+      # - PUSHME_KEY=your_pushme_key
     volumes:
+      # 数据持久化
       - ./data:/app/data
       - ./config:/app/config
     ports:

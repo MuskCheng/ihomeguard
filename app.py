@@ -100,8 +100,13 @@ def main():
     print("[启动] 初始化数据库...")
     storage.init_db()
     
-    # 加载配置
+    # 加载配置（首次运行会自动创建默认配置文件）
     cfg = config.get_config()
+    
+    # 确保配置文件存在（首次部署时创建）
+    if not os.path.exists(config.CONFIG_PATH):
+        print("[启动] 创建默认配置文件...")
+        config.save_config(cfg)
     
     # 重置爱快客户端锁定状态（确保启动时是干净状态）
     IKuaiLocalClient.reset_lock_state()

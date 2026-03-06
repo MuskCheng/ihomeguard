@@ -2076,14 +2076,14 @@
                             this.realtimeChart.data.datasets[0].data = res.data.upload_speeds;
                             this.realtimeChart.data.datasets[1].data = res.data.download_speeds;
                             this.realtimeChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-                            this.realtimeChart.update('active');
+                            this.realtimeChart.update();
 
                             // 更新连接数图表
                             if (this.connectionChart) {
                                 this.connectionChart.data.labels = labels;
                                 this.connectionChart.data.datasets[0].data = res.data.connection_counts;
                                 this.connectionChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-                                this.connectionChart.update('active');
+                                this.connectionChart.update();
                             }
 
                             // 更新当前连接数
@@ -2162,12 +2162,19 @@
                     this.refreshDevices();
                 }, 3000);
                 
-                // 流量历史刷新间隔 (30秒) - 只在统计页面时刷新
+                // 流量历史刷新间隔 - 根据区间动态调整，短区间更频繁
                 setInterval(() => {
                     if (this.currentPage === 'stats') {
                         this.loadTrafficHistory();
                     }
-                }, 30000);
+                }, 10000);  // 默认10秒刷新，在loadTrafficHistory中根据区间调整
+                
+                // 短区间(5m/1h)时额外快速刷新
+                setInterval(() => {
+                    if (this.currentPage === 'stats' && ['5m', '1h'].includes(this.trafficRange)) {
+                        this.loadTrafficHistory();
+                    }
+                }, 5000);
             }
         }).mount('#app');
     </script>
