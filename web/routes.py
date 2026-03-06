@@ -295,6 +295,51 @@ def get_traffic_history():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ========== 数据库维护 API ==========
+
+@app.route('/api/database/stats')
+def get_database_stats():
+    """获取数据库统计信息"""
+    try:
+        stats = storage.get_database_stats()
+        return jsonify({'success': True, 'stats': stats})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/database/cleanup', methods=['POST'])
+def manual_cleanup():
+    """手动触发数据清理"""
+    try:
+        data = request.get_json() or {}
+        retention = data.get('retention', {})
+        
+        results = storage.cleanup_all(retention)
+        total = sum(results.values())
+        
+        # 执行 VACUUM
+        storage.vacuum_database()
+        
+        return jsonify({
+            'success': True,
+            'deleted': results,
+            'total_deleted': total,
+            'message': f'清理完成，共删除 {total} 条记录'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/database/vacuum', methods=['POST'])
+def manual_vacuum():
+    """手动触发数据库 VACUUM"""
+    try:
+        storage.vacuum_database()
+        return jsonify({'success': True, 'message': 'VACUUM 完成'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ========== 配置管理 API ==========
 
 @app.route('/api/config')

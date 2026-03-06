@@ -158,6 +158,33 @@ def cleanup_traffic_history_task():
         print(f"[清理错误] {e}")
 
 
+def cleanup_all_task():
+    """统一数据清理任务（每天凌晨3点执行）"""
+    try:
+        # 执行清理
+        results = storage.cleanup_all({
+            'online_records': 7,      # 在线记录保留7天
+            'traffic_history': 7,     # 流量历史保留7天
+            'device_events': 30,      # 设备事件保留30天
+            'online_sessions': 30,    # 在线会话保留30天
+            'alerts': 30,             # 已处理告警保留30天
+            'daily_stats': 365        # 每日统计保留365天
+        })
+        
+        # 打印清理结果
+        total = sum(results.values())
+        print(f"[数据清理] 共删除 {total} 条记录")
+        for table, count in results.items():
+            if count > 0:
+                print(f"  - {table}: {count} 条")
+        
+        # 执行 VACUUM 回收空间
+        storage.vacuum_database()
+        
+    except Exception as e:
+        print(f"[数据清理错误] {e}")
+
+
 def format_bytes(bytes_val):
     """格式化字节数"""
     if not bytes_val:
@@ -190,8 +217,8 @@ def start_scheduler():
     # 统计任务（每小时执行一次）
     scheduler.add_job(daily_stats_task, CronTrigger(minute=55), id='daily_stats')
     
-    # 流量历史清理任务（每天凌晨3点）
-    scheduler.add_job(cleanup_traffic_history_task, CronTrigger(hour=3, minute=0), id='cleanup_traffic')
+    # 数据清理任务（每天凌晨3点）
+    scheduler.add_job(cleanup_all_task, CronTrigger(hour=3, minute=0), id='cleanup_all')
     
     # 初始化当日统计数据
     init_daily_stats()

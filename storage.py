@@ -478,3 +478,129 @@ def get_device_online_time(mac: str, date: str = None) -> int:
             total_minutes += (datetime.now() - last_online).total_seconds() / 60
         
         return int(total_minutes)
+
+
+# ========== 数据清理操作 ==========
+
+def cleanup_online_records(days: int = 7):
+    """清理超过指定天数的在线记录"""
+    with get_db() as conn:
+        result = conn.execute('''
+            DELETE FROM online_records 
+            WHERE recorded_at < datetime('now', 'localtime', ?)
+        ''', (f'-{days} days',))
+        return result.rowcount
+
+
+def cleanup_device_events(days: int = 30):
+    """清理超过指定天数的设备事件"""
+    with get_db() as conn:
+        result = conn.execute('''
+            DELETE FROM device_events 
+            WHERE happened_at < datetime('now', 'localtime', ?)
+        ''', (f'-{days} days',))
+        return result.rowcount
+
+
+def cleanup_online_sessions(days: int = 30):
+    """清理超过指定天数的在线会话"""
+    with get_db() as conn:
+        result = conn.execute('''
+            DELETE FROM online_sessions 
+            WHERE online_at < datetime('now', 'localtime', ?)
+        ''', (f'-{days} days',))
+        return result.rowcount
+
+
+def cleanup_resolved_alerts(days: int = 30):
+    """清理超过指定天数的已处理告警"""
+    with get_db() as conn:
+        result = conn.execute('''
+            DELETE FROM alerts 
+            WHERE is_resolved = 1 AND created_at < datetime('now', 'localtime', ?)
+        ''', (f'-{days} days',))
+        return result.rowcount
+
+
+def cleanup_old_daily_stats(days: int = 365):
+    """清理超过指定天数的每日统计"""
+    with get_db() as conn:
+        result = conn.execute('''
+            DELETE FROM daily_stats 
+            WHERE date < date('now', 'localtime', ?)
+        ''', (f'-{days} days',))
+        return result.rowcount
+
+
+def vacuum_database():
+    """执行数据库 VACUUM 操作，回收空间"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute('VACUUM')
+    conn.close()
+    print("[数据库] VACUUM 完成，空间已回收")
+
+
+def get_database_stats() -> dict:
+    """获取数据库统计信息"""
+    with get_db() as conn:
+        stats = {
+            'devices': conn.execute('SELECT COUNT(*) FROM devices').fetchone()[0],
+            'online_records': conn.execute('SELECT COUNT(*) FROM online_records').fetchone()[0],
+            'traffic_history': conn.execute('SELECT COUNT(*) FROM traffic_history').fetchone()[0],
+            'daily_stats': conn.execute('SELECT COUNT(*) FROM daily_stats').fetchone()[0],
+            'alerts': conn.execute('SELECT COUNT(*) FROM alerts').fetchone()[0],
+            'device_events': conn.execute('SELECT COUNT(*) FROM device_events').fetchone()[0],
+            'online_sessions': conn.execute('SELECT COUNT(*) FROM online_sessions').fetchone()[0],
+        }
+        
+        # 获取数据库文件大小
+        if os.path.exists(DB_PATH):
+            stats['db_size_mb'] = round(os.path.getsize(DB_PATH) / 1024 / 1024, 2)
+        else:
+            stats['db_size_mb'] = 0
+        
+        return stats
+
+
+def cleanup_all(retention_config: dict = None):
+    """执行所有数据清理
+    
+    retention_config: {
+        'online_records': 7,      # 在线记录保留天数
+        'traffic_history': 7,     # 流量历史保留天数
+        'device_events': 30,      # 设备事件保留天数
+        'online_sessions': 30,    # 在线会话保留天数
+        'alerts': 30,             # 已处理告警保留天数
+        'daily_stats': 365        # 每日统计保留天数
+    }
+    """
+    if retention_config is None:
+        retention_config = {}
+    
+    results = {}
+    
+    # 在线记录
+    days = retention_config.get('online_records', 7)
+    results['online_records'] = cleanup_online_records(days)
+    
+    # 流量历史
+    days = retention_config.get('traffic_history', 7)
+    results['traffic_history'] = cleanup_traffic_history(days)
+    
+    # 设备事件
+    days = retention_config.get('device_events', 30)
+    results['device_events'] = cleanup_device_events(days)
+    
+    # 在线会话
+    days = retention_config.get('online_sessions', 30)
+    results['online_sessions'] = cleanup_online_sessions(days)
+    
+    # 已处理告警
+    days = retention_config.get('alerts', 30)
+    results['alerts'] = cleanup_resolved_alerts(days)
+    
+    # 每日统计
+    days = retention_config.get('daily_stats', 365)
+    results['daily_stats'] = cleanup_old_daily_stats(days)
+    
+    return results
