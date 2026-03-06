@@ -1,21 +1,22 @@
 <div align="center">
-  
+
   <img src="docs/iHG.png" alt="iHomeGuard Logo" width="120" height="120">
-  
+
   # iHomeGuard
-  
+
   **爱快家庭网络卫士**
-  
+
   <i>一个现代化的家庭网络监控与管理工具</i>
-  
+
+  [![Version](https://img.shields.io/badge/Version-1.1.0-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
   [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
   [![Flask](https://img.shields.io/badge/Flask-3.1-green?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker&logoColor=white)](https://www.docker.com/)
   [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
   [![GitHub Stars](https://img.shields.io/github/stars/MuskCheng/ihomeguard?style=social)](https://github.com/MuskCheng/ihomeguard/stargazers)
-  
+
   [功能特性](#-功能特性) • [快速开始](#-快速开始) • [截图预览](#-截图预览) • [配置说明](#-配置说明) • [API文档](#-api-文档)
-  
+
 </div>
 
 ---
@@ -94,7 +95,7 @@
 ## 📸 截图预览
 
 <div align="center">
-  
+
 | 深色模式 | 浅色模式 |
 |:---:|:---:|
 | ![Dark Mode](docs/screenshots/dark-mode.png) | ![Light Mode](docs/screenshots/light-mode.png) |
@@ -180,9 +181,14 @@ python app.py
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | 采集间隔 | 5秒 | 数据采集频率 |
-| 日报时间 | 21:00 | 每日推送时间 |
+| 日报时间 | 07:00 | 每日推送时间（推送前一天数据） |
 | 流量告警阈值 | 10GB | 单设备日流量告警 |
 | 长在线阈值 | 24小时 | 设备连续在线告警 |
+| 上传速度告警 | 10MB/s | 单设备上传速度告警 |
+| 下载速度告警 | 50MB/s | 单设备下载速度告警 |
+| 单设备连接数阈值 | 500 | 单设备连接数告警 |
+| 总连接数阈值 | 1000 | 全网连接数告警 |
+| 会话超时 | 120分钟 | 路由器会话保活时间 |
 
 ---
 
@@ -272,6 +278,16 @@ ihomeguard/
 <details>
 <summary><b>点击展开更新日志</b></summary>
 
+### v1.1.0 (2026-03-06)
+- 🔧 修复统计页面流量计算逻辑（累计值改为增量计算）
+- 🔧 修复配置保存后数据不刷新问题
+- ✨ 统计页面实时刷新优化（5秒流量、30秒统计汇总）
+- ✨ 连接测试成功后自动刷新设备数据
+- 🔧 修复月份天数硬编码问题
+- 🔧 修复数据库连接泄漏风险
+- 🔧 修复裸 except 异常处理
+- 📝 更新监控参数说明与代码一致
+
 ### v1.0.0 (2026-03-05)
 - 🎉 初始版本发布
 - ✨ 设备实时监控功能
@@ -314,9 +330,9 @@ ihomeguard/
 ---
 
 <div align="center">
-  
+
   **⭐ 如果这个项目对你有帮助，请给一个 Star ⭐**
-  
+
   Made with ❤️ by [MuskCheng](https://github.com/MuskCheng)
-  
+
 </div>
