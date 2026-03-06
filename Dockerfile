@@ -28,5 +28,5 @@ EXPOSE 8680
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8680/api/health || exit 1
 
-# 启动命令
-CMD ["python", "app.py"]
+# 启动命令（-u 禁用缓冲，确保日志实时输出）
+CMD ["python", "-u", "app.py"]

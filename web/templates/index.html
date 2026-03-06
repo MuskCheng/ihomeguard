@@ -637,7 +637,232 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinning { animation: spin 1s linear infinite; }
         
-        /* 流量预测 */
+        /* 统计页面样式 */
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .summary-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .summary-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+        
+        .summary-content {
+            flex: 1;
+        }
+        
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .summary-upload .summary-value { color: var(--accent-cyan); }
+        .summary-download .summary-value { color: var(--accent-green); }
+        .summary-total .summary-value { 
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .summary-daily .summary-value { color: var(--accent-purple); }
+        
+        /* 卡片标题图标 */
+        .card-title-icon {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        /* 实时徽章 */
+        .live-badge {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            font-size: 0.65rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            animation: pulse 2s ease-in-out infinite;
+            margin-left: auto;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* 大图表容器 */
+        .chart-large {
+            height: 350px !important;
+        }
+        
+        /* 流量预测卡片 */
+        .prediction-card {
+            background: linear-gradient(135deg, var(--bg-card), rgba(139, 92, 246, 0.05));
+        }
+        
+        .prediction-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        
+        .prediction-item-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .prediction-item-box:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(6, 182, 212, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .prediction-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .upload-icon { background: rgba(6, 182, 212, 0.15); }
+        .download-icon { background: rgba(16, 185, 129, 0.15); }
+        .total-icon { background: rgba(139, 92, 246, 0.15); }
+        .daily-icon { background: rgba(236, 72, 153, 0.15); }
+        
+        .prediction-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .prediction-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .prediction-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .prediction-value.highlight {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* 加载动画 */
+        .loading-spinner {
+            display: inline-block;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        /* 表单操作区 */
+        .form-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        /* 状态徽章 */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .status-success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .status-error {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+        
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-summary, .prediction-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .stats-summary, .prediction-grid {
+                grid-template-columns: 1fr;
+            }
+            .summary-card, .prediction-item-box {
+                padding: 16px;
+            }
+            .summary-value {
+                font-size: 1.3rem;
+            }
+        }
+        
+        /* 流量预测 - 旧样式保留兼容 */
         .prediction-box {
             background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(139, 92, 246, 0.1));
             border: 1px solid rgba(6, 182, 212, 0.2);
@@ -650,17 +875,6 @@
             margin-bottom: 16px;
             color: var(--accent-cyan);
             font-size: 1rem;
-        }
-        
-        .prediction-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .prediction-item:last-child {
-            border-bottom: none;
         }
         
         /* 信任设备标识 */
@@ -818,18 +1032,59 @@
             
             <!-- 统计页面 -->
             <div class="page" :class="{active: currentPage==='stats'}">
+                <!-- 统计摘要卡片 -->
+                <div class="stats-summary">
+                    <div class="summary-card summary-upload">
+                        <div class="summary-icon">📤</div>
+                        <div class="summary-content">
+                            <div class="summary-label">本月上传</div>
+                            <div class="summary-value">{{ formatBytes(prediction?.upload || 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-card summary-download">
+                        <div class="summary-icon">📥</div>
+                        <div class="summary-content">
+                            <div class="summary-label">本月下载</div>
+                            <div class="summary-value">{{ formatBytes(prediction?.download || 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-card summary-total">
+                        <div class="summary-icon">📊</div>
+                        <div class="summary-content">
+                            <div class="summary-label">本月总流量</div>
+                            <div class="summary-value">{{ formatBytes(prediction?.total || 0) }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-card summary-daily">
+                        <div class="summary-icon">📈</div>
+                        <div class="summary-content">
+                            <div class="summary-label">日均流量</div>
+                            <div class="summary-value">{{ formatBytes(prediction?.daily_avg || 0) }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 实时流量图 -->
                 <div class="card">
-                    <div class="card-header">实时流量统计</div>
+                    <div class="card-header">
+                        <span class="card-title-icon">📡</span>
+                        实时流量监控
+                        <span class="card-badge live-badge">LIVE</span>
+                    </div>
                     <div class="card-body">
-                        <div class="chart-container">
+                        <div class="chart-container chart-large">
                             <canvas id="realtimeChart"></canvas>
                         </div>
                     </div>
                 </div>
                 
+                <!-- 双列图表 -->
                 <div class="chart-row">
                     <div class="card">
-                        <div class="card-header">流量趋势（最近7天）</div>
+                        <div class="card-header">
+                            <span class="card-title-icon">📊</span>
+                            流量趋势（最近7天）
+                        </div>
                         <div class="card-body">
                             <div class="chart-container">
                                 <canvas id="trafficChart"></canvas>
@@ -838,7 +1093,10 @@
                     </div>
                     
                     <div class="card">
-                        <div class="card-header">设备在线统计</div>
+                        <div class="card-header">
+                            <span class="card-title-icon">📱</span>
+                            设备在线统计
+                        </div>
                         <div class="card-body">
                             <div class="chart-container">
                                 <canvas id="deviceChart"></canvas>
@@ -848,29 +1106,45 @@
                 </div>
                 
                 <!-- 流量预测 -->
-                <div class="card">
-                    <div class="card-header">📊 流量趋势预测</div>
+                <div class="card prediction-card">
+                    <div class="card-header">
+                        <span class="card-title-icon">🔮</span>
+                        本月流量预测
+                    </div>
                     <div class="card-body">
-                        <div class="prediction-box" v-if="prediction">
-                            <h4>📈 本月流量预测</h4>
-                            <div class="prediction-item">
-                                <span>预计总上传</span>
-                                <strong style="color:var(--accent-cyan)">{{ formatBytes(prediction.upload) }}</strong>
+                        <div class="prediction-grid" v-if="prediction">
+                            <div class="prediction-item-box">
+                                <div class="prediction-icon upload-icon">⬆️</div>
+                                <div class="prediction-info">
+                                    <span class="prediction-label">预计上传</span>
+                                    <span class="prediction-value">{{ formatBytes(prediction.upload) }}</span>
+                                </div>
                             </div>
-                            <div class="prediction-item">
-                                <span>预计总下载</span>
-                                <strong style="color:var(--accent-green)">{{ formatBytes(prediction.download) }}</strong>
+                            <div class="prediction-item-box">
+                                <div class="prediction-icon download-icon">⬇️</div>
+                                <div class="prediction-info">
+                                    <span class="prediction-label">预计下载</span>
+                                    <span class="prediction-value">{{ formatBytes(prediction.download) }}</span>
+                                </div>
                             </div>
-                            <div class="prediction-item">
-                                <span>预计总流量</span>
-                                <strong>{{ formatBytes(prediction.total) }}</strong>
+                            <div class="prediction-item-box">
+                                <div class="prediction-icon total-icon">📊</div>
+                                <div class="prediction-info">
+                                    <span class="prediction-label">预计总量</span>
+                                    <span class="prediction-value highlight">{{ formatBytes(prediction.total) }}</span>
+                                </div>
                             </div>
-                            <div class="prediction-item">
-                                <span>日均流量</span>
-                                <strong>{{ formatBytes(prediction.daily_avg) }}</strong>
+                            <div class="prediction-item-box">
+                                <div class="prediction-icon daily-icon">📈</div>
+                                <div class="prediction-info">
+                                    <span class="prediction-label">日均流量</span>
+                                    <span class="prediction-value">{{ formatBytes(prediction.daily_avg) }}</span>
+                                </div>
                             </div>
                         </div>
-                        <div v-else class="loading">加载预测数据...</div>
+                        <div v-else class="loading">
+                            <span class="loading-spinner">⏳</span> 加载预测数据...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -914,14 +1188,34 @@
                                     <input type="text" class="form-control" v-model="config.ikuai.username" placeholder="只读账户用户名">
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label>密码</label>
-                                <input type="password" class="form-control" v-model="config.ikuai.password" placeholder="只读账户密码（加密存储）">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>密码</label>
+                                    <input type="password" class="form-control" v-model="config.ikuai.password" :placeholder="config.ikuai.password === '****' ? '密码已保存，输入新密码可修改' : '输入只读账户密码'">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+                                        <span v-if="config.ikuai.password === '****'">✅ 密码已加密保存</span>
+                                        <span v-else>密码将被加密存储</span>
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>会话超时时间（分钟）</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.session_timeout" min="10" max="1440" style="max-width: 150px;">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">系统将自动保活会话</small>
+                                </div>
                             </div>
-                            <button class="btn btn-primary" @click="testIkuai">测试连接</button>
-                            <span v-if="ikuaiStatus" :style="{color: ikuaiStatus.success ? 'var(--accent-green)' : 'var(--accent-red)', marginLeft: '10px'}">
-                                {{ ikuaiStatus.message }}
-                            </span>
+                            <div class="form-actions">
+                                <button class="btn btn-primary" @click="testIkuai" :disabled="testingIkuai">
+                                    <span v-if="testingIkuai" class="spinning">⏳</span>
+                                    <span v-else>🔌 测试连接</span>
+                                </button>
+                                <transition name="fade">
+                                    <span v-if="ikuaiStatus" class="status-badge" :class="ikuaiStatus.success ? 'status-success' : 'status-error'">
+                                        <span v-if="ikuaiStatus.success">✅</span>
+                                        <span v-else>❌</span>
+                                        {{ ikuaiStatus.message }}
+                                    </span>
+                                </transition>
+                            </div>
                         </div>
                         
                         <!-- 推送设置 -->
@@ -967,10 +1261,19 @@
                             <div class="form-group">
                                 <label><input type="checkbox" v-model="config.pushme.enabled"> 启用推送通知</label>
                             </div>
-                            <button class="btn btn-primary" @click="testPush">测试推送</button>
-                            <span v-if="pushStatus" :style="{color: pushStatus.success ? 'var(--accent-green)' : 'var(--accent-red)', marginLeft: '10px'}">
-                                {{ pushStatus.message }}
-                            </span>
+                            <div class="form-actions">
+                                <button class="btn btn-primary" @click="testPush" :disabled="testingPush">
+                                    <span v-if="testingPush" class="spinning">⏳</span>
+                                    <span v-else>🔔 测试推送</span>
+                                </button>
+                                <transition name="fade">
+                                    <span v-if="pushStatus" class="status-badge" :class="pushStatus.success ? 'status-success' : 'status-error'">
+                                        <span v-if="pushStatus.success">✅</span>
+                                        <span v-else>❌</span>
+                                        {{ pushStatus.message }}
+                                    </span>
+                                </transition>
+                            </div>
                         </div>
                         
                         <!-- 监控设置 -->
@@ -982,8 +1285,11 @@
                                     <input type="number" class="form-control" v-model="config.monitor.collect_interval">
                                 </div>
                                 <div class="form-group">
-                                    <label>日报推送时间</label>
-                                    <input type="time" class="form-control" v-model="config.monitor.report_time">
+                                    <label>日报推送时间（次日）</label>
+                                    <select class="form-control" v-model="config.monitor.report_time" style="max-width: 200px;">
+                                        <option v-for="h in 23" :key="h" :value="(h).toString().padStart(2, '0') + ':00'">{{ h }}:00</option>
+                                    </select>
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">推送前一天的完整网络数据</small>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -1024,12 +1330,15 @@
                     config: {
                         ikuai: { local_url: '', username: '', password: '' },
                         pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
-                        monitor: { collect_interval: 300, report_time: '21:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24 }
+                        monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120 }
                     },
                     prediction: null,
                     pushChannel: 'pushme',
                     ikuaiStatus: null,
+                    testingIkuai: false,
+                    connectionTested: false,
                     pushStatus: null,
+                testingPush: false,
                     trafficChart: null,
                     deviceChart: null,
                     realtimeChart: null,
@@ -1169,6 +1478,8 @@
                         const res = await axios.get('/api/config');
                         if (res.data) {
                             this.config = { ...this.config, ...res.data };
+                            // 同步连接验证状态
+                            this.connectionTested = res.data.ikuai?.connection_validated || false;
                         }
                     } catch (e) {
                         console.error('获取配置失败:', e);
@@ -1193,19 +1504,30 @@
                     }
                 },
                 async testIkuai() {
+                    this.testingIkuai = true;
+                    this.ikuaiStatus = null;
                     try {
                         const res = await axios.post('/api/test/ikuai', this.config.ikuai);
                         this.ikuaiStatus = res.data;
+                        if (res.data.success) {
+                            this.connectionTested = true;
+                        }
                     } catch (e) {
                         this.ikuaiStatus = { success: false, message: e.message };
+                    } finally {
+                        this.testingIkuai = false;
                     }
                 },
                 async testPush() {
+                    this.testingPush = true;
+                    this.pushStatus = null;
                     try {
                         const res = await axios.post('/api/test/push', { channel: this.pushChannel, ...this.config.pushme });
                         this.pushStatus = res.data;
                     } catch (e) {
                         this.pushStatus = { success: false, message: e.message };
+                    } finally {
+                        this.testingPush = false;
                     }
                 },
                 async editDevice(device) {
@@ -1233,6 +1555,10 @@
                 initCharts() {
                     const colors = this.getChartColors();
                     
+                    // 图表通用配置
+                    Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+                    Chart.defaults.font.size = 12;
+                    
                     // 实时流量图
                     const realtimeCtx = document.getElementById('realtimeChart');
                     if (realtimeCtx) {
@@ -1241,18 +1567,75 @@
                             data: {
                                 labels: [],
                                 datasets: [
-                                    { label: '上传速度', data: [], borderColor: colors.cyan, backgroundColor: colors.cyan + '20', fill: true, tension: 0.4 },
-                                    { label: '下载速度', data: [], borderColor: colors.green, backgroundColor: colors.green + '20', fill: true, tension: 0.4 }
+                                    { 
+                                        label: '⬆️ 上传速度', 
+                                        data: [], 
+                                        borderColor: colors.cyan, 
+                                        backgroundColor: colors.cyan + '20', 
+                                        fill: true, 
+                                        tension: 0.4,
+                                        borderWidth: 2,
+                                        pointRadius: 0,
+                                        pointHoverRadius: 4
+                                    },
+                                    { 
+                                        label: '⬇️ 下载速度', 
+                                        data: [], 
+                                        borderColor: colors.green, 
+                                        backgroundColor: colors.green + '20', 
+                                        fill: true, 
+                                        tension: 0.4,
+                                        borderWidth: 2,
+                                        pointRadius: 0,
+                                        pointHoverRadius: 4
+                                    }
                                 ]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                scales: {
-                                    y: { beginAtZero: true, ticks: { callback: v => this.formatSpeed(v), color: colors.textColor }, title: { display: true, text: '速度', color: colors.textColor }, grid: { color: colors.gridColor } },
-                                    x: { title: { display: true, text: '时间', color: colors.textColor }, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
                                 },
-                                plugins: { legend: { position: 'top', labels: { color: colors.textColor } } }
+                                scales: {
+                                    y: { 
+                                        beginAtZero: true, 
+                                        ticks: { 
+                                            callback: v => this.formatSpeed(v), 
+                                            color: colors.textColor,
+                                            font: { weight: '500' }
+                                        }, 
+                                        title: { display: true, text: '速度', color: colors.textColor }, 
+                                        grid: { color: colors.gridColor } 
+                                    },
+                                    x: { 
+                                        title: { display: true, text: '时间', color: colors.textColor }, 
+                                        ticks: { color: colors.textColor, maxTicksLimit: 10 }, 
+                                        grid: { color: colors.gridColor } 
+                                    }
+                                },
+                                plugins: { 
+                                    legend: { 
+                                        position: 'top', 
+                                        labels: { 
+                                            color: colors.textColor,
+                                            usePointStyle: true,
+                                            pointStyle: 'circle',
+                                            padding: 20,
+                                            font: { size: 13, weight: '500' }
+                                        } 
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        titleColor: '#fff',
+                                        bodyColor: '#fff',
+                                        borderColor: colors.cyan,
+                                        borderWidth: 1,
+                                        padding: 12,
+                                        displayColors: true
+                                    }
+                                }
                             }
                         });
                     }
@@ -1265,18 +1648,62 @@
                             data: {
                                 labels: [],
                                 datasets: [
-                                    { label: '上传', data: [], backgroundColor: colors.cyan + '99' },
-                                    { label: '下载', data: [], backgroundColor: colors.green + '99' }
+                                    { 
+                                        label: '⬆️ 上传', 
+                                        data: [], 
+                                        backgroundColor: colors.cyan + 'cc',
+                                        borderColor: colors.cyan,
+                                        borderWidth: 1,
+                                        borderRadius: 4
+                                    },
+                                    { 
+                                        label: '⬇️ 下载', 
+                                        data: [], 
+                                        backgroundColor: colors.green + 'cc',
+                                        borderColor: colors.green,
+                                        borderWidth: 1,
+                                        borderRadius: 4
+                                    }
                                 ]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 scales: {
-                                    y: { beginAtZero: true, ticks: { callback: v => this.formatBytes(v), color: colors.textColor }, title: { display: true, text: '流量', color: colors.textColor }, grid: { color: colors.gridColor } },
-                                    x: { title: { display: true, text: '日期', color: colors.textColor }, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                                    y: { 
+                                        beginAtZero: true, 
+                                        ticks: { 
+                                            callback: v => this.formatBytes(v), 
+                                            color: colors.textColor,
+                                            font: { weight: '500' }
+                                        }, 
+                                        title: { display: true, text: '流量', color: colors.textColor }, 
+                                        grid: { color: colors.gridColor } 
+                                    },
+                                    x: { 
+                                        title: { display: true, text: '日期', color: colors.textColor }, 
+                                        ticks: { color: colors.textColor }, 
+                                        grid: { display: false } 
+                                    }
                                 },
-                                plugins: { legend: { position: 'top', labels: { color: colors.textColor } } }
+                                plugins: { 
+                                    legend: { 
+                                        position: 'top', 
+                                        labels: { 
+                                            color: colors.textColor,
+                                            usePointStyle: true,
+                                            pointStyle: 'rectRounded',
+                                            padding: 20,
+                                            font: { size: 13, weight: '500' }
+                                        } 
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        callbacks: {
+                                            label: (context) => context.dataset.label + ': ' + this.formatBytes(context.raw)
+                                        }
+                                    }
+                                }
                             }
                         });
                     }
@@ -1288,16 +1715,57 @@
                             type: 'line',
                             data: {
                                 labels: [],
-                                datasets: [{ label: '在线设备数', data: [], borderColor: colors.purple, backgroundColor: colors.purple + '30', fill: true, tension: 0.4 }]
+                                datasets: [{ 
+                                    label: '📱 在线设备数', 
+                                    data: [], 
+                                    borderColor: colors.purple, 
+                                    backgroundColor: colors.purple + '30', 
+                                    fill: true, 
+                                    tension: 0.4,
+                                    borderWidth: 2,
+                                    pointRadius: 3,
+                                    pointHoverRadius: 6,
+                                    pointBackgroundColor: colors.purple
+                                }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 scales: {
-                                    y: { beginAtZero: true, ticks: { stepSize: 1, color: colors.textColor }, title: { display: true, text: '设备数（台）', color: colors.textColor }, grid: { color: colors.gridColor } },
-                                    x: { title: { display: true, text: '日期', color: colors.textColor }, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                                    y: { 
+                                        beginAtZero: true, 
+                                        ticks: { 
+                                            stepSize: 1, 
+                                            color: colors.textColor,
+                                            font: { weight: '500' }
+                                        }, 
+                                        title: { display: true, text: '设备数（台）', color: colors.textColor }, 
+                                        grid: { color: colors.gridColor } 
+                                    },
+                                    x: { 
+                                        title: { display: true, text: '日期', color: colors.textColor }, 
+                                        ticks: { color: colors.textColor }, 
+                                        grid: { color: colors.gridColor } 
+                                    }
                                 },
-                                plugins: { legend: { position: 'top', labels: { color: colors.textColor } } }
+                                plugins: { 
+                                    legend: { 
+                                        position: 'top', 
+                                        labels: { 
+                                            color: colors.textColor,
+                                            usePointStyle: true,
+                                            pointStyle: 'circle',
+                                            padding: 20,
+                                            font: { size: 13, weight: '500' }
+                                        } 
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                        callbacks: {
+                                            label: (context) => '在线设备: ' + context.raw + ' 台'
+                                        }
+                                    }
+                                }
                             }
                         });
                     }

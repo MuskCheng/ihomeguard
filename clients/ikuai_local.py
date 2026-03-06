@@ -4,29 +4,94 @@
 """
 import hashlib
 import requests
+import time
 from typing import Optional, List, Dict
+from datetime import datetime, timedelta
 
 
 class IKuaiLocalClient:
     """爱快路由器本地 API 客户端"""
     
-    def __init__(self, base_url: str, username: str, password: str):
+    # 锁定状态缓存（类级别，所有实例共享）
+    _lock_until = None  # 锁定解除时间
+    _last_login_time = None  # 上次登录时间
+    _last_keepalive_time = None  # 上次保活时间
+    _login_session_valid = False  # 会话是否有效
+    _session_timeout = 120  # 会话超时时间（分钟）
+    _shared_session = None  # 共享的 requests Session
+    _sess_key = None  # 共享的 session key
+    
+    @classmethod
+    def reset_lock_state(cls):
+        """重置锁定状态（系统启动时调用）"""
+        cls._lock_until = None
+        cls._last_login_time = None
+        cls._login_session_valid = False
+        cls._last_keepalive_time = None
+        cls._shared_session = None
+        cls._sess_key = None
+        print("[爱快] 锁定状态已重置", flush=True)
+    
+    def __init__(self, base_url: str, username: str, password: str, session_timeout: int = 120):
         self.base_url = base_url.rstrip('/')
         self.username = username
         self.password = password
-        self.session = requests.Session()
-        self._sess_key = None
+        # 使用共享的 Session
+        if IKuaiLocalClient._shared_session is None:
+            IKuaiLocalClient._shared_session = requests.Session()
+        self.session = IKuaiLocalClient._shared_session
+        IKuaiLocalClient._session_timeout = session_timeout
     
     def _md5(self, text: str) -> str:
         """计算 MD5"""
         return hashlib.md5(text.encode()).hexdigest()
     
+    def _is_locked(self) -> bool:
+        """检查是否处于锁定状态"""
+        if IKuaiLocalClient._lock_until:
+            if datetime.now() < IKuaiLocalClient._lock_until:
+                remaining = (IKuaiLocalClient._lock_until - datetime.now()).seconds
+                print(f"[爱快] 账号锁定中，剩余 {remaining} 秒", flush=True)
+                return True
+            else:
+                # 锁定已过期，清除
+                IKuaiLocalClient._lock_until = None
+        return False
+    
+    def _set_lock(self, seconds: int = 310):
+        """设置锁定状态（默认5分钟+10秒缓冲）"""
+        IKuaiLocalClient._lock_until = datetime.now() + timedelta(seconds=seconds)
+        print(f"[爱快] 设置登录锁定 {seconds} 秒，直至 {IKuaiLocalClient._lock_until.strftime('%H:%M:%S')}", flush=True)
+    
+    def _is_session_expired(self) -> bool:
+        """检查会话是否过期"""
+        if not IKuaiLocalClient._last_keepalive_time:
+            return True
+        
+        # 超过超时时间的80%就认为需要保活
+        timeout_seconds = IKuaiLocalClient._session_timeout * 60 * 0.8
+        elapsed = (datetime.now() - IKuaiLocalClient._last_keepalive_time).total_seconds()
+        return elapsed > timeout_seconds
+    
     def login(self) -> bool:
         """登录获取会话"""
+        # 检查是否被锁定
+        if self._is_locked():
+            return False
+        
+        # 登录频率限制：最小间隔3秒
+        if IKuaiLocalClient._last_login_time:
+            elapsed = (datetime.now() - IKuaiLocalClient._last_login_time).total_seconds()
+            if elapsed < 3:
+                wait_time = 3 - elapsed
+                print(f"[爱快] 登录频率限制，等待 {wait_time:.1f} 秒", flush=True)
+                time.sleep(wait_time)
+        
         passwd_md5 = self._md5(self.password)
         
         try:
             login_url = f"{self.base_url}/Action/login"
+            IKuaiLocalClient._last_login_time = datetime.now()
             
             # 使用 JSON 格式登录
             resp = self.session.post(
@@ -44,23 +109,88 @@ class IKuaiLocalClient:
             if resp.status_code == 200:
                 result = resp.json()
                 print(f"[爱快] 响应内容: {result}", flush=True)
+                
                 # 爱快成功码是 10000
                 if result.get("Result") in [10000, 30000]:
                     self._sess_key = self.session.cookies.get('sess_key') or "logged_in"
+                    IKuaiLocalClient._login_session_valid = True
+                    IKuaiLocalClient._last_keepalive_time = datetime.now()
                     print(f"[爱快] 登录成功", flush=True)
                     return True
                 else:
-                    print(f"[爱快] 登录失败: {result.get('ErrMsg', '未知错误')}", flush=True)
+                    IKuaiLocalClient._login_session_valid = False
+                    error_code = result.get("Result")
+                    error_msg = result.get('ErrMsg', '未知错误')
+                    
+                    # 账号锁定 (10015)
+                    if error_code == 10015:
+                        print(f"[爱快] 账号被锁定: {error_msg}", flush=True)
+                        self._set_lock(490)  # 锁定8分钟+10秒
+                    # 密码错误 (10001)
+                    elif error_code == 10001:
+                        print(f"[爱快] 密码错误: {error_msg}", flush=True)
+                        # 连续错误也可能触发锁定，设置8分钟延时
+                        self._set_lock(490)
+                    else:
+                        print(f"[爱快] 登录失败: {error_msg}", flush=True)
             else:
                 print(f"[爱快] 登录请求失败: HTTP {resp.status_code}", flush=True)
+                IKuaiLocalClient._login_session_valid = False
         except Exception as e:
             print(f"[爱快] 登录异常: {e}", flush=True)
+            IKuaiLocalClient._login_session_valid = False
         return False
+    
+    def keepalive(self) -> bool:
+        """保活 - 定期调用以保持会话有效"""
+        # 检查锁定状态
+        if self._is_locked():
+            return False
+        
+        # 如果会话有效且未过期，不需要保活
+        if IKuaiLocalClient._login_session_valid and not self._is_session_expired():
+            return True
+        
+        try:
+            # 调用一个轻量级API来保持会话
+            print(f"[爱快] 执行保活...", flush=True)
+            resp = self.session.post(
+                f"{self.base_url}/Action/call",
+                json={"func_name": "sysstat", "action": "show", "param": {}},
+                timeout=10
+            )
+            
+            if resp.status_code == 200:
+                result = resp.json()
+                if result.get("Result") in [10000, 30000]:
+                    IKuaiLocalClient._last_keepalive_time = datetime.now()
+                    IKuaiLocalClient._login_session_valid = True
+                    print(f"[爱快] 保活成功", flush=True)
+                    return True
+                else:
+                    # 会话已失效，需要重新登录
+                    print(f"[爱快] 会话已失效，尝试重新登录", flush=True)
+                    IKuaiLocalClient._login_session_valid = False
+                    return self.login()
+            else:
+                print(f"[爱快] 保活请求失败: HTTP {resp.status_code}", flush=True)
+                return False
+        except Exception as e:
+            print(f"[爱快] 保活异常: {e}", flush=True)
+            return False
     
     def _ensure_login(self):
         """确保已登录"""
-        # 每次调用前重新登录以确保会话有效
-        if not self.login():
+        # 检查锁定状态
+        if self._is_locked():
+            raise Exception("账号被锁定，请稍后重试")
+        
+        # 如果会话有效且未过期，不需要重新登录
+        if IKuaiLocalClient._login_session_valid and self._sess_key and not self._is_session_expired():
+            return
+        
+        # 尝试保活或登录
+        if not self.keepalive():
             raise Exception("登录失败")
     
     def _call(self, func_name: str, action: str, param: dict = None) -> dict:

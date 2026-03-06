@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, '..')
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
+from datetime import datetime, timedelta
 import config
 import storage
 from services.monitor import MonitorService
@@ -12,12 +12,23 @@ from services.reporter import ReporterService
 
 scheduler = BackgroundScheduler()
 
+# 全局监控服务实例（用于保活）
+_monitor_instance = None
+
+
+def get_monitor_instance():
+    """获取监控服务实例"""
+    global _monitor_instance
+    if _monitor_instance is None:
+        cfg = config.get_config()
+        _monitor_instance = MonitorService(cfg['ikuai'], cfg['monitor'])
+    return _monitor_instance
+
 
 def collect_task():
     """数据采集任务"""
     try:
-        cfg = config.get_config()
-        monitor = MonitorService(cfg['ikuai'], cfg['monitor'])
+        monitor = get_monitor_instance()
         result = monitor.collect()
         
         print(f"[采集] {datetime.now().strftime('%H:%M:%S')} - "
@@ -27,6 +38,7 @@ def collect_task():
         
         # 实时告警推送
         if result.get('alerts'):
+            cfg = config.get_config()
             reporter = ReporterService(cfg['pushme'])
             for alert in result['alerts']:
                 reporter.send_alert_now(alert['type'], alert['message'])
@@ -35,15 +47,28 @@ def collect_task():
         print(f"[采集错误] {e}")
 
 
+def keepalive_task():
+    """会话保活任务"""
+    try:
+        monitor = get_monitor_instance()
+        success = monitor.keepalive()
+        if success:
+            print(f"[保活] {datetime.now().strftime('%H:%M:%S')} 会话保活成功")
+    except Exception as e:
+        print(f"[保活错误] {e}")
+
+
 def daily_report_task():
-    """日报任务"""
+    """日报任务 - 发送前一天的完整数据"""
     try:
         cfg = config.get_config()
         reporter = ReporterService(cfg['pushme'])
         
         if reporter.enabled:
-            success = reporter.send_report()
-            print(f"[日报] 推送{'成功' if success else '失败'}")
+            # 发送前一天的日报
+            yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+            success = reporter.send_report(yesterday)
+            print(f"[日报] {yesterday} 推送{'成功' if success else '失败'}")
     except Exception as e:
         print(f"[日报错误] {e}")
 
@@ -93,8 +118,13 @@ def start_scheduler():
     interval = monitor_cfg.get('collect_interval', 300)
     scheduler.add_job(collect_task, 'interval', seconds=interval, id='collect')
     
+    # 会话保活任务 - 在超时时间的50%间隔执行
+    session_timeout = monitor_cfg.get('session_timeout', 120)  # 分钟
+    keepalive_interval = int(session_timeout * 60 * 0.5)  # 转换为秒，取50%
+    scheduler.add_job(keepalive_task, 'interval', seconds=keepalive_interval, id='keepalive')
+    
     # 日报任务
-    report_time = monitor_cfg.get('report_time', '21:00')
+    report_time = monitor_cfg.get('report_time', '07:00')
     hour, minute = map(int, report_time.split(':'))
     scheduler.add_job(daily_report_task, CronTrigger(hour=hour, minute=minute), id='daily_report')
     
@@ -102,4 +132,4 @@ def start_scheduler():
     scheduler.add_job(daily_stats_task, CronTrigger(hour=23, minute=55), id='daily_stats')
     
     scheduler.start()
-    print(f"[调度] 采集间隔: {interval}秒, 日报时间: {report_time}")
+    print(f"[调度] 采集间隔: {interval}秒, 保活间隔: {keepalive_interval}秒, 日报时间: {report_time}")

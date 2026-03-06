@@ -146,7 +146,8 @@ def get_default_config():
         "ikuai": {
             "local_url": os.environ.get('IKUAI_URL', 'http://192.168.1.1'),
             "username": os.environ.get('IKUAI_USER', 'admin'),
-            "password": os.environ.get('IKUAI_PASS', '')
+            "password": os.environ.get('IKUAI_PASS', ''),
+            "connection_validated": False
         },
         "pushme": {
             "push_key": os.environ.get('PUSHME_KEY', ''),
@@ -155,11 +156,12 @@ def get_default_config():
         },
         "monitor": {
             "collect_interval": 300,
-            "report_time": "21:00",
+            "report_time": "07:00",
             "alert_new_device": True,
             "traffic_threshold_gb": 10,
             "long_online_hours": 24,
-            "high_connection_threshold": 500
+            "high_connection_threshold": 500,
+            "session_timeout": 120
         },
         "web": {
             "host": "0.0.0.0",
@@ -229,10 +231,12 @@ def validate_config() -> tuple:
 
 def mask_sensitive(value: str, show_len: int = 4) -> str:
     """脱敏显示敏感信息"""
-    if not value or len(value) <= show_len:
+    if not value:
+        return ''
+    if len(value) <= show_len:
         return '****'
     return value[:show_len] + '****'
 
 
-# 敏感配置字段
-SENSITIVE_FIELDS = ['password', 'push_key']
+# 敏感配置字段（push_key 不加密，方便调试和跨环境使用）
+SENSITIVE_FIELDS = ['password']

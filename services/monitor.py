@@ -12,12 +12,14 @@ class MonitorService:
     
     def __init__(self, ikuai_config: dict, monitor_config: dict):
         self.config = monitor_config
+        self.ikuai_config = ikuai_config
         
         # 使用本地 API
         self.client = IKuaiLocalClient(
             base_url=ikuai_config.get('local_url', 'http://192.168.1.1'),
             username=ikuai_config.get('username', 'admin'),
-            password=ikuai_config.get('password', '')
+            password=ikuai_config.get('password', ''),
+            session_timeout=monitor_config.get('session_timeout', 120)
         )
         
         # 初始化告警服务
@@ -28,6 +30,19 @@ class MonitorService:
         self._last_known_devices = set()
         self._load_known_devices()
     
+    def can_collect(self) -> bool:
+        """检查是否可以采集数据"""
+        # 需要密码且连接已验证
+        password = self.ikuai_config.get('password', '')
+        validated = self.ikuai_config.get('connection_validated', False)
+        return bool(password) and validated
+    
+    def keepalive(self) -> bool:
+        """保活会话"""
+        if not self.can_collect():
+            return False
+        return self.client.keepalive()
+    
     def _load_known_devices(self):
         """加载已知设备列表"""
         for device in storage.get_all_devices():
@@ -35,6 +50,11 @@ class MonitorService:
     
     def collect(self) -> dict:
         """采集数据"""
+        # 检查是否可以采集
+        if not self.can_collect():
+            print("[监控] 连接未验证或无密码，跳过采集")
+            return {'devices': [], 'stats': {}}
+        
         # 获取在线设备
         online_devices = self.client.get_online_devices()
         
@@ -220,6 +240,9 @@ class MonitorService:
     
     def get_current_status(self) -> dict:
         """获取当前状态"""
+        if not self.can_collect():
+            return {'online_count': 0, 'devices': []}
+        
         online_devices = self.client.get_online_devices()
         
         devices = []
@@ -262,6 +285,8 @@ class MonitorService:
     
     def get_terminal_list(self) -> list:
         """获取终端列表（包含历史设备）"""
+        if not self.can_collect():
+            return []
         return self.client.get_terminal_list()
     
     def set_device_alias(self, mac: str, alias: str) -> bool:

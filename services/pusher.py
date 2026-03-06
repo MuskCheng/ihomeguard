@@ -24,6 +24,9 @@ class PushMeClient:
             return False, "push_key 未配置"
         
         try:
+            print(f"[PushMe] 发送推送到 {self.api_url}")
+            print(f"[PushMe] push_key 长度: {len(self.push_key)}")
+            
             resp = requests.post(
                 self.api_url,
                 data={
@@ -32,12 +35,25 @@ class PushMeClient:
                     "content": content,
                     "type": msg_type
                 },
-                timeout=10
+                timeout=30
             )
-            if resp.text == "success":
-                return True, "success"
+            
+            print(f"[PushMe] 响应状态: {resp.status_code}")
+            print(f"[PushMe] 响应内容: {resp.text}")
+            
+            if resp.status_code == 200:
+                if resp.text == "success" or resp.text.strip() == "success":
+                    return True, "推送成功"
+                else:
+                    # PushMe 返回错误信息
+                    error_msg = resp.text.strip()
+                    return False, error_msg
             else:
-                return False, resp.text
+                return False, f"HTTP错误: {resp.status_code}"
+                
+        except requests.exceptions.Timeout:
+            print(f"[PushMe] 发送超时")
+            return False, "请求超时，请稍后重试"
         except Exception as e:
             print(f"[PushMe] 发送失败: {e}")
             return False, str(e)
@@ -60,11 +76,13 @@ class WecomClient:
                     "content": f"## {title}\n\n{content}"
                 }
             }
-            resp = requests.post(self.webhook, json=data, timeout=10)
+            resp = requests.post(self.webhook, json=data, timeout=30)
             result = resp.json()
             if result.get('errcode') == 0:
                 return True, "success"
             return False, result.get('errmsg', '未知错误')
+        except requests.exceptions.Timeout:
+            return False, "请求超时，请稍后重试"
         except Exception as e:
             return False, str(e)
 
@@ -105,11 +123,13 @@ class DingTalkClient:
                     "text": f"## {title}\n\n{content}"
                 }
             }
-            resp = requests.post(url, json=data, timeout=10)
+            resp = requests.post(url, json=data, timeout=30)
             result = resp.json()
             if result.get('errcode') == 0:
                 return True, "success"
             return False, result.get('errmsg', '未知错误')
+        except requests.exceptions.Timeout:
+            return False, "请求超时，请稍后重试"
         except Exception as e:
             return False, str(e)
 
@@ -183,14 +203,14 @@ class MultiPushClient:
         """
         date = report_data['date']
         
-        title = f"[i][#iHomeGuard!📊] 网络日报 - {date}"
+        title = f"[i][#iHomeGuard!📊] 昨日网络日报 - {date}"
         
         # 流量统计
         upload_gb = report_data['total_upload'] / (1024 ** 3)
         download_gb = report_data['total_download'] / (1024 ** 3)
         total_gb = upload_gb + download_gb
         
-        content = f"""## 📊 家庭网络日报 - {date}
+        content = f"""## 📊 昨日网络日报 - {date}
 
 ### 📈 流量统计
 | 指标 | 数值 |
@@ -277,4 +297,69 @@ class MultiPushClient:
 
 ---
 *iHomeGuard 家庭网络监控*"""
+        return self.send(title, content, "markdown")
+    
+    def send_startup_notification(self, status_info: dict) -> tuple:
+        """发送启动通知
+        
+        Args:
+            status_info: 包含系统状态信息的字典
+                - ikuai_connected: bool - 爱快是否连接成功
+                - ikuai_message: str - 连接状态消息
+                - push_enabled: bool - 推送是否启用
+                - config_complete: bool - 配置是否完整
+                - version: str - 系统版本
+        
+        Returns:
+            (success: bool, message: str)
+        """
+        from datetime import datetime
+        
+        title = "[s][#iHomeGuard!🚀] 系统启动通知"
+        
+        # 爱快连接状态
+        ikuai_status = "✅ 连接正常" if status_info.get('ikuai_connected') else "⚠️ 未连接"
+        ikuai_detail = status_info.get('ikuai_message', '')
+        
+        # 推送状态
+        push_status = "✅ 已启用" if status_info.get('push_enabled') else "❌ 未配置"
+        
+        # 配置状态
+        config_status = "✅ 完整" if status_info.get('config_complete') else "⚠️ 待完善"
+        
+        content = f"""## 🚀 iHomeGuard 系统已启动
+
+### 📊 系统状态
+
+| 检查项 | 状态 |
+|--------|------|
+| 🔌 爱快路由器 | **{ikuai_status}** |
+| 🔔 消息推送 | **{push_status}** |
+| ⚙️ 系统配置 | **{config_status}** |
+
+"""
+        
+        # 添加爱快连接详情
+        if ikuai_detail:
+            content += f"### 💡 连接详情\n{ikuai_detail}\n\n"
+        
+        # 添加未连接时的提示
+        if not status_info.get('ikuai_connected'):
+            content += """### 📌 操作提示
+请登录管理后台，前往【设置】页面完成爱快路由器连接配置：
+1. 填写路由器地址、用户名和密码
+2. 点击【测试连接】验证配置
+3. 保存设置后系统将自动开始监控
+
+"""
+        
+        content += f"""### ⏰ 启动时间
+{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+### 📦 版本
+{status_info.get('version', 'v1.0.0')}
+
+---
+*iHomeGuard 家庭网络监控*"""
+        
         return self.send(title, content, "markdown")

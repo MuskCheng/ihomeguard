@@ -257,18 +257,19 @@ def get_config():
     try:
         cfg = config.get_config()
         
-        # 敏感信息脱敏
+        # 密码脱敏，push_key 明文显示
         result = {
             'ikuai': {
                 'local_url': cfg['ikuai'].get('local_url', ''),
                 'username': cfg['ikuai'].get('username', ''),
-                'password': ''  # 不返回密码
+                'password': '****' if cfg['ikuai'].get('password') else '',
+                'connection_validated': cfg['ikuai'].get('connection_validated', False)
             },
             'pushme': {
-                'push_key': config.mask_sensitive(cfg['pushme'].get('push_key', '')),
-                'wecom_webhook': config.mask_sensitive(cfg['pushme'].get('wecom_webhook', '')),
-                'dingtalk_webhook': config.mask_sensitive(cfg['pushme'].get('dingtalk_webhook', '')),
-                'dingtalk_secret': config.mask_sensitive(cfg['pushme'].get('dingtalk_secret', '')),
+                'push_key': cfg['pushme'].get('push_key', ''),  # 明文显示
+                'wecom_webhook': cfg['pushme'].get('wecom_webhook', ''),
+                'dingtalk_webhook': cfg['pushme'].get('dingtalk_webhook', ''),
+                'dingtalk_secret': cfg['pushme'].get('dingtalk_secret', ''),
                 'enabled': cfg['pushme'].get('enabled', True)
             },
             'monitor': cfg.get('monitor', {}),
@@ -290,13 +291,15 @@ def save_config():
         cfg = config.get_config()
         
         if 'ikuai' in data:
-            cfg['ikuai'].update(data['ikuai'])
+            # 如果密码为空或脱敏值，保持原值
+            ikuai_data = data['ikuai']
+            pwd = ikuai_data.get('password', '')
+            if not pwd or pwd == '****' or pwd.endswith('****'):
+                ikuai_data['password'] = cfg['ikuai'].get('password', '')
+            cfg['ikuai'].update(ikuai_data)
         if 'pushme' in data:
-            # 如果是****则保持原值
+            # push_key 直接保存，其他webhook检测空值
             pushme_data = data['pushme']
-            for key in ['push_key', 'wecom_webhook', 'dingtalk_webhook', 'dingtalk_secret']:
-                if pushme_data.get(key) == '****' or not pushme_data.get(key):
-                    pushme_data[key] = cfg['pushme'].get(key, '')
             cfg['pushme'].update(pushme_data)
         if 'monitor' in data:
             cfg['monitor'].update(data['monitor'])
@@ -319,23 +322,33 @@ def test_ikuai():
     try:
         data = request.get_json()
         print(f"[调试] 测试爱快连接: {data}")
+        
+        # 检查密码是否存在
+        password = data.get('password', '')
+        cfg = config.get_config()
+        
+        # 如果密码是****，使用已保存的密码
+        if password == '****' or not password:
+            password = cfg['ikuai'].get('password', '')
+            if not password:
+                return jsonify({'success': False, 'message': '请输入密码'})
+        
         client = IKuaiLocalClient(
             base_url=data.get('local_url', ''),
             username=data.get('username', ''),
-            password=data.get('password', '')
+            password=password,
+            session_timeout=cfg.get('monitor', {}).get('session_timeout', 120)
         )
         
         if client.login():
             info = client.get_router_info()
             
             # 测试成功后自动保存配置
-            cfg = config.get_config()
-            print(f"[调试] 当前配置: {cfg}")
             cfg['ikuai']['local_url'] = data.get('local_url', '')
             cfg['ikuai']['username'] = data.get('username', '')
-            if data.get('password'):
+            if data.get('password') and data.get('password') != '****':
                 cfg['ikuai']['password'] = data.get('password')
-            print(f"[调试] 保存配置到: {config.CONFIG_PATH}")
+            cfg['ikuai']['connection_validated'] = True
             config.save_config(cfg)
             print(f"[调试] 配置已保存")
             
@@ -343,9 +356,10 @@ def test_ikuai():
             global _monitor
             _monitor = None
             
+            router_name = info.get('name', 'iKuai Router') if info else 'iKuai Router'
             return jsonify({
                 'success': True,
-                'message': f"连接成功: {info.get('name', 'iKuai Router')}，配置已保存"
+                'message': f"连接成功！路由器: {router_name}"
             })
         else:
             return jsonify({'success': False, 'message': '登录失败，请检查用户名密码'})
@@ -387,6 +401,19 @@ def test_push():
     try:
         data = request.get_json()
         channel = data.get('channel', 'pushme')
+        
+        # 先保存推送配置
+        cfg = config.get_config()
+        if 'push_key' in data and data['push_key']:
+            cfg['pushme']['push_key'] = data['push_key']
+        if 'wecom_webhook' in data and data['wecom_webhook']:
+            cfg['pushme']['wecom_webhook'] = data['wecom_webhook']
+        if 'dingtalk_webhook' in data and data['dingtalk_webhook']:
+            cfg['pushme']['dingtalk_webhook'] = data['dingtalk_webhook']
+        if 'dingtalk_secret' in data and data['dingtalk_secret']:
+            cfg['pushme']['dingtalk_secret'] = data['dingtalk_secret']
+        config.save_config(cfg)
+        print(f"[推送] 配置已保存，测试渠道: {channel}")
         
         from services.pusher import MultiPushClient
         
