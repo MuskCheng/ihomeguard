@@ -255,11 +255,12 @@ def get_traffic_prediction():
 def get_traffic_history():
     """获取流量历史数据"""
     try:
-        # 支持的时间范围: 1h, 6h, 12h, 1d, 3d, 7d
-        range_param = request.args.get('range', '1h')
+        # 支持的时间范围: 5m, 1h, 6h, 12h, 1d, 3d, 7d
+        range_param = request.args.get('range', '5m')
         
-        # 转换为小时数
+        # 转换为小时数（支持分钟）
         hours_map = {
+            '5m': 5/60,   # 5分钟
             '1h': 1,
             '6h': 6,
             '12h': 12,
@@ -267,7 +268,7 @@ def get_traffic_history():
             '3d': 72,
             '7d': 168
         }
-        hours = hours_map.get(range_param, 1)
+        hours = hours_map.get(range_param, 5/60)
         
         history = storage.get_traffic_history(hours)
         
