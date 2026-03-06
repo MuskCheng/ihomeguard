@@ -1,6 +1,6 @@
 services:
   ihomeguard:
-    image: crpi-2paq7xeeayrc2fy6.cn-zhangjiakou.personal.cr.aliyuncs.com/eddycheng/ihomeguard:1.0.0
+    image: crpi-2paq7xeeayrc2fy6.cn-zhangjiakou.personal.cr.aliyuncs.com/eddycheng/ihomeguard:latest
     container_name: ihomeguard
     restart: unless-stopped
     environment:
