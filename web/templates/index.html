@@ -2113,18 +2113,37 @@
                     } catch (e) {
                         console.error('加载统计失败:', e);
                     }
+                },
+                // 初始化统计页面
+                initStatsPage() {
+                    // 延迟初始化，等待 CSS 动画完成
+                    // display:none 的 canvas 尺寸为 0，图表无法正确渲染
+                    setTimeout(() => {
+                        // 初始化图表
+                        this.initCharts();
+                        
+                        // 图表初始化后，延迟加载数据并调整尺寸
+                        this.$nextTick(() => {
+                            // 强制图表重新计算尺寸
+                            setTimeout(() => {
+                                if (this.realtimeChart) this.realtimeChart.resize();
+                                if (this.connectionChart) this.connectionChart.resize();
+                                if (this.trafficChart) this.trafficChart.resize();
+                                if (this.deviceChart) this.deviceChart.resize();
+                            }, 50);
+                            
+                            // 加载数据
+                            this.loadStats();
+                            this.loadPrediction();
+                            this.loadTrafficHistory();
+                        });
+                    }, 150);
                 }
             },
             watch: {
                 currentPage(newPage) {
                     if (newPage === 'stats') {
-                        // 延迟初始化统计页面图表，等待 DOM 渲染
-                        this.$nextTick(() => {
-                            this.initCharts();
-                            this.loadStats();
-                            this.loadPrediction();
-                            this.loadTrafficHistory();
-                        });
+                        this.initStatsPage();
                     }
                     if (newPage === 'settings') {
                         this.loadDbStats();
@@ -2136,19 +2155,18 @@
                 this.refreshDevices();
                 this.refreshAlerts();
                 this.loadConfig();
-                this.$nextTick(() => {
-                    this.initCharts();
-                    this.loadTrafficHistory();
-                });
+                // 不在 mounted 时初始化图表，因为统计页面是 display:none
                 
                 // 设备刷新间隔 (3秒)
                 setInterval(() => {
                     this.refreshDevices();
                 }, 3000);
                 
-                // 流量历史刷新间隔 (30秒)
+                // 流量历史刷新间隔 (30秒) - 只在统计页面时刷新
                 setInterval(() => {
-                    this.loadTrafficHistory();
+                    if (this.currentPage === 'stats') {
+                        this.loadTrafficHistory();
+                    }
                 }, 30000);
             }
         }).mount('#app');
