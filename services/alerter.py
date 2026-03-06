@@ -16,6 +16,9 @@ class AlerterService:
         self.alert_new_device = config.get('alert_new_device', True)
         self.long_online_hours = config.get('long_online_hours', 24)
         self.high_connection_threshold = config.get('high_connection_threshold', 500)
+        # 实时速度阈值（KB/s），默认上传10MB/s，下载50MB/s
+        self.upload_speed_threshold = config.get('upload_speed_threshold_kbps', 10240) * 1024
+        self.download_speed_threshold = config.get('download_speed_threshold_kbps', 51200) * 1024
     
     def check_all(self, online_devices: List[dict], collect_data: dict) -> List[dict]:
         """执行所有告警检测"""
@@ -32,6 +35,9 @@ class AlerterService:
         
         # 4. 异常流量突增检测
         alerts.extend(self._check_traffic_spike(collect_data))
+        
+        # 5. 实时速度阈值检测
+        alerts.extend(self._check_speed_threshold(online_devices))
         
         return alerts
     
@@ -155,7 +161,8 @@ class AlerterService:
         
         for dev in devices:
             mac = dev.get('mac', '').upper()
-            connections = int(dev.get('connect', 0) or 0)
+            # 爱快API字段名是 connect_num
+            connections = int(dev.get('connect_num', 0) or dev.get('connect', 0) or 0)
             
             if connections > self.high_connection_threshold:
                 device = storage.get_device(mac)
@@ -184,9 +191,64 @@ class AlerterService:
     def _check_traffic_spike(self, collect_data: dict) -> List[dict]:
         """检测流量突增"""
         alerts = []
-        
+
         # 获取昨天同时段数据对比
         # 这里简化处理，实际可以根据历史数据计算
         # TODO: 实现更精确的突增检测
-        
+
+        return alerts
+
+    def _check_speed_threshold(self, devices: List[dict]) -> List[dict]:
+        """检测实时速度超阈值设备"""
+        alerts = []
+
+        for dev in devices:
+            mac = dev.get('mac', '').upper()
+            # 爱快API中 upload/download 字段是实时速度（bytes/s）
+            upload_speed = int(dev.get('upload', 0) or 0)
+            download_speed = int(dev.get('download', 0) or 0)
+
+            # 检查上传速度
+            if upload_speed > self.upload_speed_threshold:
+                device = storage.get_device(mac)
+                alias = device.get('alias', '') if device else ''
+
+                # 检查是否最近10分钟已告警过
+                recent_alerts = storage.get_recent_alerts_by_type('high_upload_speed', mac, minutes=10)
+                if not recent_alerts:
+                    speed_mbps = upload_speed / (1024 * 1024)
+                    alert_id = storage.add_alert(
+                        alert_type='high_upload_speed',
+                        severity='warning',
+                        mac=mac,
+                        message=f'{alias or mac[:8]} 上传速度异常: {speed_mbps:.2f} MB/s'
+                    )
+                    alerts.append({
+                        'id': alert_id,
+                        'type': 'high_upload_speed',
+                        'mac': mac,
+                        'message': f'{alias or mac[:8]} 上传速度异常: {speed_mbps:.2f} MB/s'
+                    })
+
+            # 检查下载速度
+            if download_speed > self.download_speed_threshold:
+                device = storage.get_device(mac)
+                alias = device.get('alias', '') if device else ''
+
+                recent_alerts = storage.get_recent_alerts_by_type('high_download_speed', mac, minutes=10)
+                if not recent_alerts:
+                    speed_mbps = download_speed / (1024 * 1024)
+                    alert_id = storage.add_alert(
+                        alert_type='high_download_speed',
+                        severity='warning',
+                        mac=mac,
+                        message=f'{alias or mac[:8]} 下载速度异常: {speed_mbps:.2f} MB/s'
+                    )
+                    alerts.append({
+                        'id': alert_id,
+                        'type': 'high_download_speed',
+                        'mac': mac,
+                        'message': f'{alias or mac[:8]} 下载速度异常: {speed_mbps:.2f} MB/s'
+                    })
+
         return alerts

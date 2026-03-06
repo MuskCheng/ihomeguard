@@ -323,11 +323,21 @@ def get_alerts_by_type_date(alert_type: str, mac: str, date: str) -> dict:
     """检查指定类型、设备、日期是否已有告警"""
     with get_db() as conn:
         row = conn.execute('''
-            SELECT * FROM alerts 
+            SELECT * FROM alerts
             WHERE alert_type = ? AND mac = ? AND date(created_at) = ?
             LIMIT 1
         ''', (alert_type, mac.upper(), date)).fetchone()
         return dict(row) if row else None
+
+
+def get_recent_alerts_by_type(alert_type: str, mac: str, minutes: int = 10) -> list:
+    """检查指定类型、设备在最近N分钟内是否已有告警"""
+    with get_db() as conn:
+        rows = conn.execute('''
+            SELECT * FROM alerts
+            WHERE alert_type = ? AND mac = ? AND created_at >= datetime('now', ?)
+        ''', (alert_type, mac.upper(), f'-{minutes} minutes')).fetchall()
+        return [dict(row) for row in rows]
 
 
 def resolve_alert(alert_id: int):
