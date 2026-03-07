@@ -164,6 +164,8 @@ def get_default_config():
             "collect_interval": 5,
             "report_time": "07:00",
             "alert_new_device": True,
+            "alert_startup": True,
+            "alert_offline": True,
             "traffic_threshold_gb": 10,
             "long_online_hours": 24,
             "high_connection_threshold": 500,

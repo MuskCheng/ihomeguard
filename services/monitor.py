@@ -161,11 +161,15 @@ class MonitorService:
         self._last_known_devices = current_devices
     
     def _handle_new_device(self, mac: str, ip: str, hostname: str):
-        """处理新设备接入"""
+        """处理新设备接入（仅在设备首次接入时告警）"""
         storage.add_device_event(mac, 'online', ip)
         
         device = storage.get_device(mac)
-        if not device or not device.get('is_trusted'):
+        # 只有设备从未在数据库中出现过，才是真正的"新设备"
+        # 注意：此时设备已经被 upsert_device 插入数据库，但我们通过 first_seen 时间判断
+        is_truly_new = device is None or device.get('first_seen') == device.get('last_seen')
+        
+        if is_truly_new:
             # 添加告警记录
             storage.add_alert(
                 alert_type='new_device',

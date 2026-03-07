@@ -54,6 +54,17 @@ def check_ikuai_connection(cfg: dict) -> tuple:
 def send_startup_notification(cfg: dict, ikuai_connected: bool, ikuai_message: str):
     """发送启动通知"""
     pushme_cfg = cfg.get('pushme', {})
+    monitor_cfg = cfg.get('monitor', {})
+    
+    # 检查是否启用启动通知（默认启用）
+    if not monitor_cfg.get('alert_startup', True):
+        print("[启动] 启动通知已禁用，跳过")
+        return
+    
+    # 检查推送是否启用
+    if not pushme_cfg.get('enabled', True):
+        print("[启动] 推送已禁用，跳过启动通知")
+        return
     
     # 检查是否有推送配置
     has_push_config = (
