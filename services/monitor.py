@@ -28,6 +28,10 @@ class MonitorService:
         # 已知设备集合
         self._known_devices = set()
         self._last_known_devices = set()
+        
+        # 设备数据缓存（避免每次 API 调用都请求路由器）
+        self._cached_devices = []
+        self._cache_time = None
         self._load_known_devices()
     
     def can_collect(self) -> bool:
@@ -101,6 +105,10 @@ class MonitorService:
         
         # 检测设备上下线事件
         self._detect_device_events(current_devices)
+        
+        # 更新设备缓存（用于快速 API 响应）
+        self._cached_devices = online_devices
+        self._cache_time = datetime.now()
         
         # 执行告警检测
         alerts = self.alerter.check_all(online_devices, {
@@ -250,28 +258,56 @@ class MonitorService:
             print(f"[推送] 离线通知异常: {e}")
     
     def get_current_status(self) -> dict:
-        """获取当前状态"""
+        """获取当前状态（使用 stale-while-revalidate 策略）
+        
+        策略：
+        - 如果有缓存（即使过期），立即返回旧缓存
+        - 如果缓存超过 30 秒，启动后台刷新
+        - 只在首次启动无缓存时同步等待
+        """
         if not self.can_collect():
             return {'online_count': 0, 'devices': []}
         
-        online_devices = self.client.get_online_devices()
+        import threading
+        
+        # 检查缓存状态
+        cache_age = 0
+        if self._cached_devices and self._cache_time:
+            cache_age = (datetime.now() - self._cache_time).total_seconds()
+        
+        # 如果有缓存，直接使用（即使过期）
+        if self._cached_devices:
+            online_devices = self._cached_devices
+            
+            # 缓存超过 30 秒，启动后台刷新
+            if cache_age > 30:
+                def refresh_cache():
+                    try:
+                        new_devices = self.client.get_online_devices()
+                        self._cached_devices = new_devices
+                        self._cache_time = datetime.now()
+                    except Exception as e:
+                        print(f"[后台刷新] 失败: {e}")
+                
+                thread = threading.Thread(target=refresh_cache, daemon=True)
+                thread.start()
+        else:
+            # 首次启动无缓存，同步获取
+            online_devices = self.client.get_online_devices()
+            self._cached_devices = online_devices
+            self._cache_time = datetime.now()
+        
+        # 批量获取所有设备今日在线时长（避免 N+1 查询）
+        all_online_time = storage.get_all_today_online_time()
+        
+        # 批量获取设备信息（避免循环查询）
+        macs = [dev.get('mac', '').upper() for dev in online_devices]
+        device_infos = storage.get_devices_by_macs(macs)
         
         devices = []
         for dev in online_devices:
             mac = dev.get('mac', '').upper()
-            device_info = storage.get_device(mac) or {}
-            
-            # 爱快 monitor_lanip API 返回的字段：
-            # ip_addr: IP地址
-            # total_up / total_down: 累计上传/下载流量
-            # download / upload: 实时下载/上传速度
-            # connect_num: 连接数
-            # comment: 设备备注
-            # hostname: 设备主机名
-            # client_model: 设备型号识别
-            
-            # 获取今日在线时长
-            today_online_minutes = storage.get_today_online_time(mac)
+            device_info = device_infos.get(mac, {})
             
             devices.append({
                 'mac': mac,
@@ -286,7 +322,7 @@ class MonitorService:
                 'connections': dev.get('connect_num', 0),  # 连接数
                 'client_model': dev.get('client_model', ''),  # 设备型号
                 'client_device': dev.get('client_device', ''),  # 设备厂商
-                'today_online_minutes': today_online_minutes  # 今日在线时长
+                'today_online_minutes': all_online_time.get(mac, 0)  # 今日在线时长
             })
         
         return {

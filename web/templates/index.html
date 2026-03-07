@@ -251,9 +251,13 @@
             font-weight: 600;
             font-size: 1rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 10px;
             background: var(--input-bg);
+        }
+        
+        .card-title-icon {
+            flex-shrink: 0;
         }
         
         .card-body {
@@ -583,18 +587,439 @@
             color: var(--text-secondary);
         }
         
-        /* 响应式 */
+        /* ========== 移动端菜单按钮 ========== */
+        .menu-toggle {
+            display: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 201;
+        }
+
+        .menu-toggle:hover {
+            background: var(--input-focus-bg);
+            border-color: var(--border-hover);
+        }
+
+        /* ========== 移动端抽屉菜单 ========== */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            z-index: 200;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-direction: column;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+
+        .mobile-menu-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mobile-menu-header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+        }
+
+        .mobile-menu-header span {
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mobile-menu-nav {
+            padding: 16px;
+            flex: 1;
+        }
+
+        .mobile-menu-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-menu-nav a:hover,
+        .mobile-menu-nav a.active {
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+
+        .mobile-menu-nav a.active {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
+            border: 1px solid var(--border-hover);
+        }
+
+        .mobile-menu-nav a span {
+            font-size: 1.3rem;
+        }
+
+        .mobile-menu-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* 移动端遮罩层 */
+        .mobile-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .mobile-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ========== 移动端设备卡片样式 ========== */
+        .device-cards {
+            display: none;
+        }
+
+        .device-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .device-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .device-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .device-card-icon {
+            font-size: 2rem;
+        }
+
+        .device-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .device-card-name {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .device-card-vendor {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .device-card-ip {
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            font-family: monospace;
+        }
+
+        .device-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .device-stat {
+            background: var(--input-bg);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .device-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .device-stat-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .device-stat-value.upload { color: var(--accent-cyan); }
+        .device-stat-value.download { color: var(--accent-green); }
+
+        .device-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .device-card-actions .btn {
+            flex: 1;
+            min-width: 60px;
+        }
+
+        /* ========== 响应式样式 ========== */
         @media (max-width: 768px) {
             .navbar { padding: 0 16px; }
             .navbar h1 { font-size: 1.1rem; }
-            .nav-links a { padding: 8px 12px; font-size: 0.8rem; }
-            .theme-toggle { width: 38px; height: 38px; }
-            .main { padding: 16px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .stat-card { padding: 16px; }
-            .stat-card .value { font-size: 1.5rem; }
-            .table { font-size: 0.85rem; }
-            .table th, .table td { padding: 12px 14px; }
+            .navbar h1 .logo-text { display: none; }
+            .theme-toggle { width: 38px; height: 38px; font-size: 1.1rem; }
+            .main { padding: 16px; padding-top: 80px; }
+            
+            /* 显示移动端菜单按钮 */
+            .menu-toggle { display: flex; }
+            
+            /* 隐藏桌面端导航 */
+            .nav-links { display: none; }
+            
+            /* 显示移动端菜单 */
+            .mobile-menu { display: flex; }
+            .mobile-overlay { display: block; }
+            
+            /* 统计卡片 */
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .stat-card { padding: 14px; }
+            .stat-card .value { font-size: 1.3rem; }
+            .stat-card .label { font-size: 0.75rem; }
+            .stat-card .icon { font-size: 1.6rem; }
+            
+            /* 隐藏表格，显示卡片 */
+            .table { display: none; }
+            .device-cards { display: block; }
+            
+            /* 卡片头部 */
+            .card-header { 
+                padding: 14px 16px; 
+                font-size: 0.9rem; 
+                flex-wrap: wrap; 
+                gap: 10px;
+            }
+            .card-body { padding: 16px; }
+            
+            /* 图表容器 */
+            .chart-container { height: 250px; }
+            .chart-large { height: 280px; }
+            
+            /* 统计摘要 */
+            .stats-summary, .prediction-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .summary-card, .prediction-item-box { padding: 14px; }
+            .summary-value, .prediction-value { font-size: 1.1rem; }
+            .summary-icon { font-size: 2rem; }
+            
+            /* 时间范围选择器 */
+            .time-range-selector { 
+                width: 100%; 
+                margin-left: 0; 
+                margin-top: 10px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .range-btn { padding: 6px 12px; font-size: 0.8rem; }
+            
+            /* 数据库统计 */
+            .db-stats { grid-template-columns: repeat(2, 1fr); }
+            
+            /* 告警项 */
+            .alert-item { 
+                padding: 12px 14px; 
+                font-size: 0.85rem;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .alert-item small { 
+                float: none; 
+                display: block; 
+                margin-top: 8px; 
+            }
+            .alert-item button {
+                float: none;
+                margin-top: 10px;
+                margin-right: 0;
+            }
+            
+            /* 表单 */
+            .form-row { flex-direction: column; gap: 0; }
+            .form-group label { font-size: 0.85rem; }
+            .form-control { padding: 10px 14px; font-size: 0.95rem; }
+            select.form-control { max-width: 100%; }
+            
+            /* 设置分区标题 */
+            .settings-section h3 { 
+                padding: 10px 14px; 
+                font-size: 0.9rem; 
+            }
+            
+            /* 按钮 */
+            .btn { padding: 10px 16px; font-size: 0.85rem; }
+            .form-actions { 
+                flex-direction: column; 
+                gap: 10px; 
+                align-items: stretch; 
+            }
+            .form-actions .btn { width: 100%; }
+            
+            /* 安全提示 */
+            .security-tip { padding: 12px 14px; font-size: 0.8rem; }
+            
+            /* 徽章 */
+            .live-badge { font-size: 0.6rem; padding: 2px 6px; }
+        }
+        
+        @media (max-width: 480px) {
+            .navbar { padding: 0 12px; height: 56px; }
+            .navbar h1 .logo-icon { width: 32px; height: 32px; }
+            .menu-toggle { width: 40px; height: 40px; font-size: 1.3rem; }
+            .theme-toggle { width: 36px; height: 36px; font-size: 1rem; }
+            .main { padding: 12px; padding-top: 72px; }
+            
+            .stats-grid { gap: 8px; }
+            .stat-card { padding: 12px; }
+            .stat-card .value { font-size: 1.1rem; }
+            .stat-card .label { font-size: 0.7rem; }
+            .stat-card .icon { font-size: 1.4rem; }
+            
+            .card { border-radius: 12px; margin-bottom: 16px; }
+            .card-header { padding: 12px 14px; font-size: 0.85rem; }
+            .card-body { padding: 14px; }
+            
+            .chart-container { height: 220px; }
+            
+            .stats-summary, .prediction-grid { gap: 8px; }
+            .summary-card, .prediction-item-box { padding: 12px; }
+            .summary-value, .prediction-value { font-size: 1rem; }
+            .summary-label, .prediction-label { font-size: 0.75rem; }
+            .summary-icon { font-size: 1.8rem; }
+            
+            .device-card { padding: 14px; }
+            .device-card-name { font-size: 0.9rem; }
+            .device-card-stats { gap: 6px; }
+            .device-stat { padding: 8px; }
+            .device-stat-value { font-size: 0.85rem; }
+            
+            .prediction-icon { 
+                width: 40px; 
+                height: 40px; 
+                font-size: 1.6rem; 
+            }
+            
+            .db-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .db-stat-item { padding: 10px 12px; }
+            .db-stat-value { font-size: 1rem; }
+        }
+        
+        /* 触控优化 */
+        @media (hover: none) and (pointer: coarse) {
+            .btn, .nav-links a, .mobile-menu-nav a, .range-btn {
+                min-height: 44px;
+            }
+            
+            .stat-card:hover,
+            .card:hover {
+                transform: none;
+            }
+            
+            .stat-card:active,
+            .btn:active {
+                transform: scale(0.98);
+            }
+        }
+        
+        /* ========== 移动端告警卡片 ========== */
+        .alert-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-left: 4px solid;
+        }
+        
+        .alert-card.alert-warning { border-left-color: var(--accent-orange); }
+        .alert-card.alert-danger { border-left-color: var(--accent-red); }
+        .alert-card.alert-info { border-left-color: var(--accent-cyan); }
+        
+        .alert-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .alert-card-type {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .alert-card-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        
+        .alert-card-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        
+        .alert-card-action {
+            width: 100%;
+        }
+        
+        @media (min-width: 769px) {
+            .alert-cards { display: none; }
+        }
+        
+        @media (max-width: 768px) {
+            .alert-item { display: none; }
+            .alert-cards { display: block; }
         }
         
         /* 页面切换 */
@@ -991,8 +1416,39 @@
 </head>
 <body>
     <div id="app">
+        <!-- 移动端遮罩层 -->
+        <div class="mobile-overlay" :class="{show: mobileMenuOpen}" @click="closeMobileMenu"></div>
+        
+        <!-- 移动端抽屉菜单 -->
+        <div class="mobile-menu" :class="{open: mobileMenuOpen}">
+            <div class="mobile-menu-header">
+                <img src="/static/iHG.png" alt="iHG">
+                <span>iHomeGuard</span>
+            </div>
+            <nav class="mobile-menu-nav">
+                <a href="#" :class="{active: currentPage==='devices'}" @click="navigateTo('devices')">
+                    <span>📱</span> 设备
+                </a>
+                <a href="#" :class="{active: currentPage==='stats'}" @click="navigateTo('stats')">
+                    <span>📊</span> 统计
+                </a>
+                <a href="#" :class="{active: currentPage==='alerts'}" @click="navigateTo('alerts')">
+                    <span>🔔</span> 告警
+                </a>
+                <a href="#" :class="{active: currentPage==='settings'}" @click="navigateTo('settings')">
+                    <span>⚙️</span> 设置
+                </a>
+            </nav>
+            <div class="mobile-menu-footer">
+                <button class="btn" style="width:100%; justify-content: center;" @click="toggleTheme">
+                    {{ isDarkMode ? '☀️ 切换日间模式' : '🌙 切换夜间模式' }}
+                </button>
+            </div>
+        </div>
+        
         <!-- 导航栏 -->
         <nav class="navbar">
+            <button class="menu-toggle" @click="toggleMobileMenu">☰</button>
             <h1>
                 <img src="/static/iHG.png" alt="iHG" class="logo-icon">
                 <span class="logo-text">iHomeGuard</span>
@@ -1048,12 +1504,57 @@
                 
                 <div class="card">
                     <div class="card-header">
+                        <span class="card-title-icon">📱</span>
                         <span>在线设备列表 ({{ onlineCount }} 台)</span>
-                        <button class="btn btn-primary btn-sm" @click="refreshDevices" :disabled="loading">
+                        <button class="btn btn-primary btn-sm" @click="refreshDevices" :disabled="loading" style="margin-left: auto;">
                             🔄 刷新
                         </button>
                     </div>
                     <div class="card-body">
+                        <!-- 移动端设备卡片 -->
+                        <div class="device-cards">
+                            <div class="device-card" v-for="device in devices" :key="device.mac">
+                                <div class="device-card-header">
+                                    <span class="device-card-icon">{{ getDeviceIcon(device) }}</span>
+                                    <div class="device-card-info">
+                                        <div class="device-card-name">
+                                            <strong>{{ device.alias || device.hostname || device.mac.slice(0,8) }}</strong>
+                                            <span v-if="device.is_trusted" class="trusted-badge">信任</span>
+                                        </div>
+                                        <div class="device-card-vendor">{{ device.vendor || 'Unknown' }}</div>
+                                        <div class="device-card-ip">{{ device.ip }}</div>
+                                    </div>
+                                </div>
+                                <div class="device-card-stats">
+                                    <div class="device-stat">
+                                        <div class="device-stat-label">上传速度</div>
+                                        <div class="device-stat-value upload">⬆ {{ formatSpeed(device.upload_speed) }}</div>
+                                    </div>
+                                    <div class="device-stat">
+                                        <div class="device-stat-label">下载速度</div>
+                                        <div class="device-stat-value download">⬇ {{ formatSpeed(device.download_speed) }}</div>
+                                    </div>
+                                    <div class="device-stat">
+                                        <div class="device-stat-label">今日流量</div>
+                                        <div class="device-stat-value">{{ formatBytes(device.total_upload + device.total_download) }}</div>
+                                    </div>
+                                    <div class="device-stat">
+                                        <div class="device-stat-label">在线/连接</div>
+                                        <div class="device-stat-value">{{ device.today_online_formatted || '-' }} / {{ device.connections }}</div>
+                                    </div>
+                                </div>
+                                <div class="device-card-actions">
+                                    <button class="btn btn-sm" @click="editDevice(device)" title="编辑">📝 备注</button>
+                                    <button class="btn btn-sm" @click="toggleTrust(device)" :title="device.is_trusted ? '取消信任' : '设为信任'">
+                                        {{ device.is_trusted ? '✅ 已信任' : '⭐ 信任' }}
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" @click="kickDevice(device)" title="踢下线">🚫 踢下线</button>
+                                </div>
+                            </div>
+                            <div v-if="devices.length === 0" class="loading">暂无在线设备</div>
+                        </div>
+                        
+                        <!-- 桌面端表格 -->
                         <table class="table">
                             <thead>
                                 <tr>
@@ -1141,15 +1642,7 @@
                 <div class="card">
                     <div class="card-header">
                         <span class="card-title-icon">📡</span>
-                        实时流量监控
-                        <span class="card-badge live-badge">LIVE</span>
-                        <div class="time-range-selector">
-                            <button v-for="r in timeRanges" :key="r.value"
-                                    :class="['range-btn', { active: trafficRange === r.value }]"
-                                    @click="setTrafficRange(r.value)">
-                                {{ r.label }}
-                            </button>
-                        </div>
+                        实时流量监控（最近24小时）
                     </div>
                     <div class="card-body">
                         <div class="chart-container chart-large">
@@ -1162,8 +1655,7 @@
                 <div class="card">
                     <div class="card-header">
                         <span class="card-title-icon">🔌</span>
-                        连接数监控
-                        <span class="card-badge" :class="connectionBadgeClass">{{ currentConnections || totalConnections }} 连接</span>
+                        连接数监控（最近24小时）
                     </div>
                     <div class="card-body">
                         <div class="chart-container chart-large">
@@ -1172,29 +1664,15 @@
                     </div>
                 </div>
                 
-                <!-- 双列图表 -->
-                <div class="chart-row">
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title-icon">📊</span>
-                            流量趋势（最近7天）
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="trafficChart"></canvas>
-                            </div>
-                        </div>
+                <!-- 流量趋势图 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title-icon">📊</span>
+                        流量趋势（最近14天）
                     </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title-icon">📱</span>
-                            设备在线统计
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="deviceChart"></canvas>
-                            </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="trafficChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -1247,10 +1725,25 @@
             <div class="page" :class="{active: currentPage==='alerts'}">
                 <div class="card">
                     <div class="card-header">
+                        <span class="card-title-icon">⚠️</span>
                         <span>告警记录 ({{ alerts.length }} 条未处理)</span>
-                        <button class="btn btn-sm" @click="refreshAlerts">🔄 刷新</button>
+                        <button class="btn btn-sm" @click="refreshAlerts" style="margin-left: auto;">🔄 刷新</button>
                     </div>
                     <div class="card-body">
+                        <!-- 移动端告警卡片 -->
+                        <div class="alert-cards">
+                            <div v-for="alert in alerts" :key="alert.id" class="alert-card" :class="'alert-' + alert.severity">
+                                <div class="alert-card-header">
+                                    <span class="alert-card-type">[{{ getAlertTypeLabel(alert.alert_type) }}]</span>
+                                    <span class="alert-card-time">{{ alert.created_at }}</span>
+                                </div>
+                                <div class="alert-card-message">{{ alert.message }}</div>
+                                <button class="btn btn-sm btn-primary alert-card-action" @click="resolveAlert(alert.id)">✓ 标记已处理</button>
+                            </div>
+                            <div v-if="alerts.length === 0" class="loading">暂无告警 ✅</div>
+                        </div>
+                        
+                        <!-- 桌面端告警列表 -->
                         <div v-for="alert in alerts" :key="alert.id" class="alert-item" :class="'alert-' + alert.severity">
                             <strong>[{{ getAlertTypeLabel(alert.alert_type) }}]</strong> {{ alert.message }}
                             <small style="float:right;color:var(--text-muted)">{{ alert.created_at }}</small>
@@ -1264,7 +1757,7 @@
             <!-- 设置页面 -->
             <div class="page" :class="{active: currentPage==='settings'}">
                 <div class="card">
-                    <div class="card-header">系统设置</div>
+                    <div class="card-header"><span class="card-title-icon">⚙️</span>系统设置</div>
                     <div class="card-body">
                         <!-- 爱快路由器设置 -->
                         <div class="settings-section">
@@ -1479,6 +1972,7 @@
             data() {
                 return {
                     currentPage: 'devices',
+                    mobileMenuOpen: false,
                     loading: false,
                     devices: [],
                     alerts: [],
@@ -1494,21 +1988,12 @@
                     pushStatus: null,
                 testingPush: false,
                     trafficChart: null,
-                    deviceChart: null,
+
                     realtimeChart: null,
                     connectionChart: null,
                     realtimeData: { labels: [], upload: [], download: [] },
-                    trafficRange: '5m',
+                    trafficRange: '1d',
                     currentConnections: 0,
-                    timeRanges: [
-                        { value: '5m', label: '5分钟' },
-                        { value: '1h', label: '1小时' },
-                        { value: '6h', label: '6小时' },
-                        { value: '12h', label: '12小时' },
-                        { value: '1d', label: '1天' },
-                        { value: '3d', label: '3天' },
-                        { value: '7d', label: '7天' }
-                    ],
                     isDarkMode: true,
                     dbStats: null,
                     cleaningDb: false
@@ -1538,6 +2023,18 @@
                 }
             },
             methods: {
+                toggleMobileMenu() {
+                    this.mobileMenuOpen = !this.mobileMenuOpen;
+                    document.body.style.overflow = this.mobileMenuOpen ? 'hidden' : '';
+                },
+                closeMobileMenu() {
+                    this.mobileMenuOpen = false;
+                    document.body.style.overflow = '';
+                },
+                navigateTo(page) {
+                    this.currentPage = page;
+                    this.closeMobileMenu();
+                },
                 toggleTheme() {
                     this.isDarkMode = !this.isDarkMode;
                     localStorage.setItem('ihomeguard-theme', this.isDarkMode ? 'dark' : 'light');
@@ -1586,15 +2083,6 @@
                         this.trafficChart.options.scales.x.grid.color = colors.gridColor;
                         this.trafficChart.options.scales.y.grid.color = colors.gridColor;
                         this.trafficChart.update();
-                    }
-                    
-                    if (this.deviceChart) {
-                        this.deviceChart.options.scales.x.ticks.color = colors.textColor;
-                        this.deviceChart.options.scales.y.ticks.color = colors.textColor;
-                        this.deviceChart.options.scales.x.grid.color = colors.gridColor;
-                        this.deviceChart.options.scales.y.grid.color = colors.gridColor;
-                        this.deviceChart.data.datasets[0].borderColor = colors.purple;
-                        this.deviceChart.update();
                     }
                 },
                 formatBytes(bytes) {
@@ -1846,6 +2334,13 @@
                                         padding: 12,
                                         displayColors: true
                                     }
+                                },
+                                transitions: {
+                                    resize: {
+                                        animation: {
+                                            duration: 300
+                                        }
+                                    }
                                 }
                             }
                         });
@@ -1890,7 +2385,7 @@
                                         grid: { color: colors.gridColor }
                                     }
                                 },
-                                plugins: {
+                                                                plugins: {
                                     legend: {
                                         position: 'top',
                                         labels: {
@@ -1903,7 +2398,7 @@
                             }
                         });
                     }
-
+                    
                     // 流量趋势图 - 只在未初始化时创建
                     const trafficCtx = document.getElementById('trafficChart');
                     if (trafficCtx && !this.trafficChart) {
@@ -1971,68 +2466,6 @@
                             }
                         });
                     }
-                    
-                    // 设备统计图 - 只在未初始化时创建
-                    const deviceCtx = document.getElementById('deviceChart');
-                    if (deviceCtx && !this.deviceChart) {
-                        this.deviceChart = new Chart(deviceCtx, {
-                            type: 'line',
-                            data: {
-                                labels: [],
-                                datasets: [{ 
-                                    label: '📱 在线设备数', 
-                                    data: [], 
-                                    borderColor: colors.purple, 
-                                    backgroundColor: colors.purple + '30', 
-                                    fill: true, 
-                                    tension: 0.4,
-                                    borderWidth: 2,
-                                    pointRadius: 3,
-                                    pointHoverRadius: 6,
-                                    pointBackgroundColor: colors.purple
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: { 
-                                        beginAtZero: true, 
-                                        ticks: { 
-                                            stepSize: 1, 
-                                            color: colors.textColor,
-                                            font: { weight: '500' }
-                                        }, 
-                                        title: { display: true, text: '设备数（台）', color: colors.textColor }, 
-                                        grid: { color: colors.gridColor } 
-                                    },
-                                    x: { 
-                                        title: { display: true, text: '日期', color: colors.textColor }, 
-                                        ticks: { color: colors.textColor }, 
-                                        grid: { color: colors.gridColor } 
-                                    }
-                                },
-                                plugins: { 
-                                    legend: { 
-                                        position: 'top', 
-                                        labels: { 
-                                            color: colors.textColor,
-                                            usePointStyle: true,
-                                            pointStyle: 'circle',
-                                            padding: 20,
-                                            font: { size: 13, weight: '500' }
-                                        } 
-                                    },
-                                    tooltip: {
-                                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                        callbacks: {
-                                            label: (context) => '在线设备: ' + context.raw + ' 台'
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
                 },
                 updateRealtimeChart() {
                     // 刷新设备数据后重新加载流量历史
@@ -2042,104 +2475,275 @@
                     this.trafficRange = range;
                     await this.loadTrafficHistory();
                 },
-                async loadTrafficHistory() {
+                resetChartZoom() {
+                    // 重置实时流量图缩放 - 使用多种方法确保生效
+                    if (this.realtimeChart) {
+                        try {
+                            // 方法1: 使用插件API
+                            if (this.realtimeChart.resetZoom) {
+                                this.realtimeChart.resetZoom();
+                            }
+                            // 方法2: 重置X轴范围
+                            if (this.realtimeChart.options.scales && this.realtimeChart.options.scales.x) {
+                                delete this.realtimeChart.options.scales.x.min;
+                                delete this.realtimeChart.options.scales.x.max;
+                            }
+                            this.realtimeChart.update('none');
+                        } catch(e) {
+                            console.warn('[重置缩放] 失败:', e);
+                        }
+                    }
+                    // 重置连接数图表缩放
+                    if (this.connectionChart) {
+                        try {
+                            if (this.connectionChart.resetZoom) {
+                                this.connectionChart.resetZoom();
+                            }
+                            if (this.connectionChart.options.scales && this.connectionChart.options.scales.x) {
+                                delete this.connectionChart.options.scales.x.min;
+                                delete this.connectionChart.options.scales.x.max;
+                            }
+                            this.connectionChart.update('none');
+                        } catch(e) {
+                            console.warn('[重置缩放] 失败:', e);
+                        }
+                    }
+                },
+                async loadTrafficHistory(useCache = true) {
+                    const cacheKey = `traffic_history_${this.trafficRange}`;
+                    
+                    // 1. 尝试从缓存立即显示
+                    if (useCache) {
+                        try {
+                            const cached = localStorage.getItem(cacheKey);
+                            if (cached) {
+                                const cachedData = JSON.parse(cached);
+                                // 缓存有效期 30 秒
+                                if (Date.now() - cachedData.timestamp < 30000) {
+                                    this._renderTrafficData(cachedData.data);
+                                    console.log('[流量历史] 使用缓存数据');
+                                    return; // 缓存有效，直接返回
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[流量历史] 读取缓存失败:', e);
+                        }
+                    }
+                    
+                    // 2. 请求最新数据
                     try {
                         const res = await axios.get(`/api/traffic/history?range=${this.trafficRange}`);
-                        if (res.data.success && this.realtimeChart) {
-                            // 根据时间范围决定标签格式
-                            const isLongRange = ['1d', '3d', '7d'].includes(this.trafficRange);
-                            const labels = res.data.times.map(t => {
-                                // t 格式: "2026-03-06 14:30"
-                                const parts = t.split(' ');
-                                if (parts.length > 1) {
-                                    if (isLongRange) {
-                                        // 长时间范围：显示 "03-06 14:30"
-                                        const datePart = parts[0].substring(5); // 去掉年份
-                                        return `${datePart} ${parts[1]}`;
-                                    } else {
-                                        // 短时间范围：只显示 "14:30"
-                                        return parts[1];
-                                    }
-                                }
-                                return t;
-                            });
-
-                            // 根据数据量和时间范围动态调整 maxTicksLimit
-                            const dataLength = labels.length;
-                            let maxTicks;
-                            if (isLongRange) {
-                                maxTicks = Math.min(15, Math.max(8, Math.floor(dataLength / 20)));
-                            } else {
-                                maxTicks = Math.min(10, Math.max(5, Math.floor(dataLength / 8)));
+                        if (res.data.success) {
+                            this._renderTrafficData(res.data);
+                            // 保存到缓存
+                            try {
+                                localStorage.setItem(cacheKey, JSON.stringify({
+                                    data: res.data,
+                                    timestamp: Date.now()
+                                }));
+                            } catch (e) {
+                                // localStorage 可能已满，清理旧缓存
+                                this._clearOldCache();
                             }
-
-                            // 更新实时流量图表
-                            this.realtimeChart.data.labels = labels;
-                            this.realtimeChart.data.datasets[0].data = res.data.upload_speeds;
-                            this.realtimeChart.data.datasets[1].data = res.data.download_speeds;
-                            this.realtimeChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-                            this.realtimeChart.update();
-
-                            // 更新连接数图表
-                            if (this.connectionChart) {
-                                this.connectionChart.data.labels = labels;
-                                this.connectionChart.data.datasets[0].data = res.data.connection_counts;
-                                this.connectionChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
-                                this.connectionChart.update();
-                            }
-
-                            // 更新当前连接数
-                            const counts = res.data.connection_counts;
-                            this.currentConnections = counts.length > 0 ? counts[counts.length - 1] : 0;
                         }
                     } catch (e) {
                         console.error('加载流量历史失败:', e);
+                        // 请求失败时尝试使用过期缓存
+                        try {
+                            const cached = localStorage.getItem(cacheKey);
+                            if (cached) {
+                                this._renderTrafficData(JSON.parse(cached).data);
+                                console.log('[流量历史] 使用过期缓存（请求失败）');
+                            }
+                        } catch (e2) {}
                     }
                 },
-                async loadStats() {
+                _renderTrafficData(data) {
+                    // 根据时间范围决定标签格式
+                    const isLongRange = ['1d', '3d', '7d'].includes(this.trafficRange);
+                    const labels = data.times.map(t => {
+                        const parts = t.split(' ');
+                        if (parts.length > 1) {
+                            if (isLongRange) {
+                                const datePart = parts[0].substring(5);
+                                return `${datePart} ${parts[1]}`;
+                            } else {
+                                return parts[1];
+                            }
+                        }
+                        return t;
+                    });
+
+                    const dataLength = labels.length;
+                    let maxTicks = isLongRange 
+                        ? Math.min(15, Math.max(8, Math.floor(dataLength / 20)))
+                        : Math.min(10, Math.max(5, Math.floor(dataLength / 8)));
+
+                    // 更新实时流量图表
+                    if (this.realtimeChart && this.realtimeChart.options && this.realtimeChart.options.scales) {
+                        this.realtimeChart.data.labels = labels;
+                        this.realtimeChart.data.datasets[0].data = data.upload_speeds;
+                        this.realtimeChart.data.datasets[1].data = data.download_speeds;
+                        if (this.realtimeChart.options.scales.x) {
+                            this.realtimeChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+                            delete this.realtimeChart.options.scales.x.min;
+                            delete this.realtimeChart.options.scales.x.max;
+                        }
+                        this.realtimeChart.update('none');
+                    }
+
+                    // 更新连接数图表
+                    if (this.connectionChart && this.connectionChart.options && this.connectionChart.options.scales) {
+                        this.connectionChart.data.labels = labels;
+                        this.connectionChart.data.datasets[0].data = data.connection_counts;
+                        if (this.connectionChart.options.scales.x) {
+                            this.connectionChart.options.scales.x.ticks.maxTicksLimit = maxTicks;
+                            delete this.connectionChart.options.scales.x.min;
+                            delete this.connectionChart.options.scales.x.max;
+                        }
+                        this.connectionChart.update('none');
+                    }
+
+                    // 更新当前连接数
+                    const counts = data.connection_counts;
+                    this.currentConnections = counts.length > 0 ? counts[counts.length - 1] : 0;
+                },
+                async loadStats(useCache = true) {
+                    const cacheKey = 'stats_week';
+                    
+                    // 1. 尝试从缓存立即显示
+                    if (useCache) {
+                        try {
+                            const cached = localStorage.getItem(cacheKey);
+                            if (cached) {
+                                const cachedData = JSON.parse(cached);
+                                // 缓存有效期 60 秒（周统计变化较慢）
+                                if (Date.now() - cachedData.timestamp < 60000) {
+                                    this._renderStatsData(cachedData.data);
+                                    console.log('[周统计] 使用缓存数据');
+                                    return;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[周统计] 读取缓存失败:', e);
+                        }
+                    }
+                    
+                    // 2. 请求最新数据
                     try {
                         const res = await axios.get('/api/stats/week');
                         if (res.data.success) {
-                            if (this.trafficChart) {
-                                this.trafficChart.data.labels = res.data.dates;
-                                this.trafficChart.data.datasets[0].data = res.data.upload;
-                                this.trafficChart.data.datasets[1].data = res.data.download;
-                                this.trafficChart.update();
-                            }
-                            if (this.deviceChart) {
-                                this.deviceChart.data.labels = res.data.dates;
-                                this.deviceChart.data.datasets[0].data = res.data.device_counts;
-                                this.deviceChart.update();
-                            }
+                            this._renderStatsData(res.data);
+                            // 保存到缓存
+                            localStorage.setItem(cacheKey, JSON.stringify({
+                                data: res.data,
+                                timestamp: Date.now()
+                            }));
                         }
                     } catch (e) {
                         console.error('加载统计失败:', e);
+                        // 请求失败时尝试使用过期缓存
+                        try {
+                            const cached = localStorage.getItem(cacheKey);
+                            if (cached) {
+                                this._renderStatsData(JSON.parse(cached).data);
+                                console.log('[周统计] 使用过期缓存（请求失败）');
+                            }
+                        } catch (e2) {}
                     }
+                },
+                _renderStatsData(data) {
+                    if (this.trafficChart) {
+                        this.trafficChart.data.labels = data.dates;
+                        this.trafficChart.data.datasets[0].data = data.upload;
+                        this.trafficChart.data.datasets[1].data = data.download;
+                        this.trafficChart.update('none');
+                    }
+                },
+                _clearOldCache() {
+                    // 清理过期的缓存数据
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && (key.startsWith('traffic_history_') || key === 'stats_week')) {
+                            try {
+                                const data = JSON.parse(localStorage.getItem(key));
+                                // 清理超过 5 分钟的缓存
+                                if (Date.now() - data.timestamp > 300000) {
+                                    keysToRemove.push(key);
+                                }
+                            } catch (e) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                    }
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                    console.log('[缓存] 清理了', keysToRemove.length, '个过期缓存');
+                },
+                preloadStatsData() {
+                    // 后台预加载统计页数据（不更新图表）
+                    console.log('[预加载] 开始预加载统计页数据');
+                    Promise.all([
+                        axios.get('/api/stats/week').then(res => {
+                            if (res.data.success) {
+                                localStorage.setItem('stats_week', JSON.stringify({
+                                    data: res.data,
+                                    timestamp: Date.now()
+                                }));
+                            }
+                        }).catch(() => {}),
+                        axios.get('/api/traffic/history?range=1d').then(res => {
+                            if (res.data.success) {
+                                localStorage.setItem('traffic_history_1d', JSON.stringify({
+                                    data: res.data,
+                                    timestamp: Date.now()
+                                }));
+                            }
+                        }).catch(() => {}),
+                        axios.get('/api/stats/prediction').then(res => {
+                            if (res.data.success) {
+                                this.prediction = res.data.prediction;
+                            }
+                        }).catch(() => {})
+                    ]).then(() => {
+                        console.log('[预加载] 统计页数据预加载完成');
+                    }).catch(e => console.warn('[预加载] 部分数据预加载失败:', e));
                 },
                 // 初始化统计页面
                 initStatsPage() {
-                    // 延迟初始化，等待 CSS 动画完成
-                    // display:none 的 canvas 尺寸为 0，图表无法正确渲染
-                    setTimeout(() => {
+                    // 方案：使用 requestAnimationFrame + 延迟 确保 DOM 完全渲染
+                    // CSS 动画 fadeIn 0.3s，需要等待动画完成
+                    const initChartsAndData = () => {
                         // 初始化图表
                         this.initCharts();
                         
-                        // 图表初始化后，延迟加载数据并调整尺寸
-                        this.$nextTick(() => {
-                            // 强制图表重新计算尺寸
-                            setTimeout(() => {
-                                if (this.realtimeChart) this.realtimeChart.resize();
-                                if (this.connectionChart) this.connectionChart.resize();
-                                if (this.trafficChart) this.trafficChart.resize();
-                                if (this.deviceChart) this.deviceChart.resize();
-                            }, 50);
+                        // 图表初始化后加载数据
+                        setTimeout(() => {
+                            // 调整图表尺寸
+                            [this.realtimeChart, this.connectionChart, this.trafficChart].forEach(chart => {
+                                if (chart) {
+                                    chart.resize();
+                                }
+                            });
                             
                             // 加载数据
-                            this.loadStats();
-                            this.loadPrediction();
-                            this.loadTrafficHistory();
+                            Promise.all([
+                                this.loadStats(),
+                                this.loadPrediction(),
+                                this.loadTrafficHistory()
+                            ]).catch(e => console.error('统计数据加载失败:', e));
+                        }, 100);
+                    };
+                    
+                    // 等待 CSS 动画完成（300ms）+ 额外缓冲
+                    setTimeout(() => {
+                        // 使用双重 requestAnimationFrame 确保布局完成
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                initChartsAndData();
+                            });
                         });
-                    }, 150);
+                    }, 350);
                 }
             },
             watch: {
@@ -2154,9 +2758,15 @@
             },
             mounted() {
                 this.loadTheme();
-                this.refreshDevices();
-                this.refreshAlerts();
-                this.loadConfig();
+                // 并行加载所有数据，提升页面加载速度
+                Promise.all([
+                    this.refreshDevices(),
+                    this.refreshAlerts(),
+                    this.loadConfig()
+                ]).then(() => {
+                    // 首页数据加载完成后，后台预加载统计页数据
+                    setTimeout(() => this.preloadStatsData(), 2000);
+                }).catch(e => console.error('数据加载失败:', e));
                 // 不在 mounted 时初始化图表，因为统计页面是 display:none
                 
                 // 设备刷新间隔 (5秒)

@@ -144,12 +144,12 @@ def resolve_alert(alert_id):
 
 @app.route('/api/stats/week')
 def get_week_stats():
-    """获取最近7天统计"""
+    """获取最近14天统计"""
     from datetime import datetime, timedelta
     
     try:
         end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=6)).strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=13)).strftime('%Y-%m-%d')
         
         stats = storage.get_stats_range(start_date, end_date)
         
@@ -158,8 +158,8 @@ def get_week_stats():
         download = []
         device_counts = []
         
-        for i in range(7):
-            d = (datetime.now() - timedelta(days=6-i)).strftime('%Y-%m-%d')
+        for i in range(14):
+            d = (datetime.now() - timedelta(days=13-i)).strftime('%Y-%m-%d')
             dates.append(d[5:])  # MM-DD
             
             day_stat = next((s for s in stats if s['date'] == d), None)
@@ -254,22 +254,14 @@ def get_traffic_prediction():
 
 @app.route('/api/traffic/history')
 def get_traffic_history():
-    """获取流量历史数据"""
+    """获取流量历史数据（默认24小时）"""
     try:
-        # 支持的时间范围: 5m, 1h, 6h, 12h, 1d, 3d, 7d
-        range_param = request.args.get('range', '5m')
+        # 只支持 1d（24小时），简化数据展示
+        range_param = request.args.get('range', '1d')
         
-        # 转换为小时数（支持分钟）
-        hours_map = {
-            '5m': 1,      # 5分钟 → 改为1小时，确保有足够数据
-            '1h': 1,
-            '6h': 6,
-            '12h': 12,
-            '1d': 24,
-            '3d': 72,
-            '7d': 168
-        }
-        hours = hours_map.get(range_param, 5/60)
+        # 固定为 24 小时
+        minutes = 1440
+        hours = 24.0
         
         history = storage.get_traffic_history(hours)
         

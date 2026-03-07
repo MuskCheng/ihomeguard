@@ -199,6 +199,20 @@ def get_device(mac: str) -> dict:
         return dict(row) if row else None
 
 
+def get_devices_by_macs(macs: list) -> dict:
+    """批量获取设备信息，返回 {mac: device_info} 字典"""
+    if not macs:
+        return {}
+    
+    # 统一转大写
+    macs_upper = [mac.upper() for mac in macs]
+    placeholders = ','.join('?' * len(macs_upper))
+    
+    with get_db() as conn:
+        rows = conn.execute(f'SELECT * FROM devices WHERE mac IN ({placeholders})', macs_upper).fetchall()
+        return {row['mac']: dict(row) for row in rows}
+
+
 def get_all_devices() -> list:
     """获取所有设备"""
     with get_db() as conn:
@@ -286,24 +300,36 @@ def save_traffic_snapshot(upload_speed: int, download_speed: int, device_count: 
         ''', (upload_speed, download_speed, device_count, connection_count))
 
 
-def get_traffic_history(hours: int = 1) -> list:
-    """获取指定小时范围内的流量历史"""
+def get_traffic_history(hours: float = 1) -> list:
+    """获取指定小时范围内的流量历史（支持小数，如 0.5 表示 30 分钟）
+    
+    每分钟只取该分钟内最后一条记录，确保数据点唯一且准确
+    """
     with get_db() as conn:
+        # 使用子查询获取每分钟最后一条记录的 rowid
         return [dict(row) for row in conn.execute('''
             SELECT
-                strftime('%Y-%m-%d %H:%M', timestamp) as time,
-                upload_speed,
-                download_speed,
-                device_count,
-                connection_count
-            FROM traffic_history
-            WHERE timestamp >= datetime('now', 'localtime', ?)
-            ORDER BY timestamp ASC
-        ''', (f'-{hours} hours',))]
+                strftime('%Y-%m-%d %H:%M', t.timestamp) as time,
+                t.upload_speed,
+                t.download_speed,
+                t.device_count,
+                t.connection_count
+            FROM traffic_history t
+            INNER JOIN (
+                SELECT 
+                    strftime('%Y-%m-%d %H:%M', timestamp) as minute,
+                    MAX(rowid) as max_rowid
+                FROM traffic_history
+                WHERE timestamp >= datetime('now', 'localtime', ?)
+                GROUP BY strftime('%Y-%m-%d %H:%M', timestamp)
+            ) latest ON t.rowid = latest.max_rowid
+            WHERE t.timestamp >= datetime('now', 'localtime', ?)
+            ORDER BY t.timestamp ASC
+        ''', (f'-{hours} hours', f'-{hours} hours'))]
 
 
-def cleanup_traffic_history(days: int = 7):
-    """清理超过指定天数的流量历史数据"""
+def cleanup_traffic_history(days: int = 1):
+    """清理超过指定天数的流量历史数据（默认保留24小时）"""
     with get_db() as conn:
         conn.execute('''
             DELETE FROM traffic_history 
@@ -500,6 +526,38 @@ def get_today_online_time(mac: str) -> int:
             total += current_minutes
         
         return total
+
+
+def get_all_today_online_time() -> dict:
+    """批量获取所有设备今日在线时长（分钟），返回 {mac: minutes} 字典"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    result = {}
+    
+    with get_db() as conn:
+        # 一次性查询所有设备今日已完成的在线时长
+        rows = conn.execute('''
+            SELECT mac, COALESCE(SUM(duration_minutes), 0) as total
+            FROM online_sessions 
+            WHERE date(online_at) = ?
+            GROUP BY mac
+        ''', (today,)).fetchall()
+        
+        for row in rows:
+            result[row['mac']] = row['total']
+        
+        # 查询所有当前在线的设备，加上当前在线时间
+        active_sessions = conn.execute('''
+            SELECT mac, online_at FROM online_sessions 
+            WHERE offline_at IS NULL
+        ''').fetchall()
+        
+        for session in active_sessions:
+            mac = session['mac']
+            online_at = datetime.fromisoformat(session['online_at'])
+            current_minutes = int((datetime.now() - online_at).total_seconds() / 60)
+            result[mac] = result.get(mac, 0) + current_minutes
+    
+    return result
 
 
 # ========== 设备在线时长统计 ==========
