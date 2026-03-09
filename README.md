@@ -8,7 +8,7 @@
 
   <i>一个现代化的家庭网络监控与管理工具</i>
 
-  [![Version](https://img.shields.io/badge/Version-1.2.3-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
+  [![Version](https://img.shields.io/badge/Version-1.2.6-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
   [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
   [![Flask](https://img.shields.io/badge/Flask-3.1-green?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -33,7 +33,8 @@
 - 🚨 **智能告警** - 新设备检测、设备离线、流量异常告警
 - 📬 **多渠道推送** - 支持 PushMe、企业微信、钉钉
 - 🔐 **安全存储** - 敏感数据加密存储，保护隐私安全
-- 🔑 **Token 认证** - 可选的身份认证保护（v1.2.3+）
+- 🔑 **用户认证** - 用户名/密码登录，bcrypt 密码哈希，JWT Token（v1.2.5+）
+- 👤 **账户管理** - 修改密码、用户管理、权限控制（v1.2.6+）
 - 💾 **配置备份** - 支持配置导出导入（v1.2.3+）
 
 ---
@@ -94,10 +95,13 @@
 <td width="50%">
 
 ### 🔐 安全特性
-- 可选 Token 认证
+- 用户名/密码认证
+- bcrypt 密码哈希存储
+- JWT Token 认证（24小时有效）
+- 登录失败锁定（5次锁定5分钟）
+- 首次启动注册管理员
+- 管理员权限控制
 - 敏感字段脱敏显示
-- 密码加密存储
-- 认证状态持久化
 
 </td>
 <td width="50%">
@@ -186,11 +190,14 @@ python app.py
 ### 首次配置
 
 1. 打开浏览器访问 `http://localhost:8680`
-2. 点击右上角「设置」进入配置页面
-3. 填写爱快路由器地址和只读账户信息
-4. 点击「测试连接」验证配置
-5. 配置推送渠道（可选）
-6. 点击「保存设置」
+2. 如果是首次运行且启用了认证，会显示注册界面
+3. 创建管理员账户（用户名 + 密码）
+4. 使用创建的账户登录
+5. 点击右上角「设置」进入配置页面
+6. 填写爱快路由器地址和只读账户信息
+7. 点击「测试连接」验证配置
+8. 配置推送渠道（可选）
+9. 点击「保存设置」
 
 ---
 
@@ -200,7 +207,8 @@ python app.py
 
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
-| `AUTH_TOKEN` | 认证 Token（启用后需验证） | 无（不启用认证） |
+| `AUTH_TOKEN` | 认证 Token（旧版兼容，启用后需验证） | 无（不启用认证） |
+| `JWT_SECRET` | JWT 密钥 | 自动生成 |
 | `LOG_LEVEL` | 日志级别 | INFO |
 | `IKUAI_URL` | 爱快路由器地址 | 配置文件 |
 | `IKUAI_USER` | 爱快用户名 | 配置文件 |
@@ -321,7 +329,12 @@ ihomeguard/
 | 接口 | 方法 | 说明 |
 |------|------|------|
 | `/api/auth/status` | GET | 获取认证状态 |
-| `/api/auth/login` | POST | Token 登录 |
+| `/api/auth/login` | POST | 用户名/密码登录 |
+| `/api/auth/init` | POST | 首次启动注册管理员 |
+| `/api/auth/change-password` | POST | 修改密码 |
+| `/api/auth/users` | GET | 获取用户列表（管理员） |
+| `/api/auth/users` | POST | 创建用户（管理员） |
+| `/api/auth/users/<username>` | DELETE | 删除用户（管理员） |
 
 ---
 
