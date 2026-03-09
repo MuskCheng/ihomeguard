@@ -2152,11 +2152,13 @@
                     <div class="card-header">
                         <span class="card-title-icon">⚠️</span>
                         <span>告警记录 ({{ alerts.length }} 条未处理)</span>
-                        <button v-if="alerts.length > 0" class="btn btn-sm btn-success" @click="resolveAllAlerts" :disabled="resolvingAll" style="margin-left: auto; margin-right: 8px;">
-                            <span v-if="resolvingAll" class="spinning">⏳</span>
-                            <span v-else>✓ 一键处理全部</span>
-                        </button>
-                        <button class="btn btn-sm" @click="refreshAlerts">🔄 刷新</button>
+                        <div style="margin-left: auto; display: flex; gap: 8px;">
+                            <button v-if="alerts.length > 0" class="btn btn-sm btn-success" @click="resolveAllAlerts" :disabled="resolvingAll">
+                                <span v-if="resolvingAll" class="spinning">⏳</span>
+                                <span v-else>✓ 一键处理</span>
+                            </button>
+                            <button class="btn btn-sm" @click="refreshAlerts">🔄 刷新</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <!-- 移动端告警卡片 -->
@@ -2186,7 +2188,10 @@
             <!-- 设置页面 -->
             <div class="page" :class="{active: currentPage==='settings'}">
                 <div class="card">
-                    <div class="card-header"><span class="card-title-icon">⚙️</span>系统设置</div>
+                    <div class="card-header">
+                        <span class="card-title-icon">⚙️</span>
+                        <span>系统设置</span>
+                    </div>
                     <div class="card-body">
                         <!-- 爱快路由器设置 -->
                         <div class="settings-section">
