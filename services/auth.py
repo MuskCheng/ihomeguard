@@ -417,26 +417,19 @@ def delete_user(username: str) -> bool:
 # ========== 认证检查 ==========
 
 def is_auth_enabled() -> bool:
-    """检查是否启用认证"""
+    """检查是否启用认证
+    
+    只要 auth.enabled 为 True 就返回 True
+    不管是否有用户（没有用户时会显示注册页面）
+    """
     try:
         import config
         cfg = config.get_config()
         auth_cfg = cfg.get('auth', {})
         
         # 检查是否启用
-        if not auth_cfg.get('enabled', False):
-            return False
+        return auth_cfg.get('enabled', False)
         
-        # 检查是否有用户配置
-        users = auth_cfg.get('users', [])
-        if users:
-            return True
-        
-        # 向后兼容：检查旧的 token 配置
-        if auth_cfg.get('token'):
-            return True
-        
-        return False
     except Exception:
         return False
 
