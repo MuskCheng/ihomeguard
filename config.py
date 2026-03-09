@@ -183,7 +183,9 @@ def get_default_config():
             "port": 8680
         },
         "auth": {
-            "enabled": bool(os.environ.get('AUTH_TOKEN', '')),
+            # 默认启用认证（首次启动显示注册页面）
+            # 可通过 AUTH_ENABLED=false 环境变量禁用
+            "enabled": os.environ.get('AUTH_ENABLED', 'true').lower() != 'false',
             "token": os.environ.get('AUTH_TOKEN', ''),
             "users": [],
             "jwt_secret": os.environ.get('JWT_SECRET', '')

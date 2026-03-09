@@ -1304,6 +1304,56 @@
             margin-top: 8px;
         }
         
+        /* 开关组件样式 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--text-secondary);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background: var(--gradient-primary);
+            border-color: transparent;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: white;
+        }
+        
         @media (max-width: 768px) {
             .about-item {
                 flex-direction: column;
@@ -2430,7 +2480,7 @@
                         </div>
 
                         <!-- 账户管理 -->
-                        <div class="settings-section" v-if="authRequired && authenticated">
+                        <div class="settings-section" v-if="authenticated">
                             <h3>👤 账户管理</h3>
 
                             <!-- 当前用户信息 -->
@@ -2509,6 +2559,24 @@
                             </div>
                         </div>
 
+                        <!-- 安全设置 -->
+                        <div class="settings-section">
+                            <h3>🔐 安全设置</h3>
+                            <div class="about-item" style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <span class="about-label">启用认证</span>
+                                    <small style="display: block; color: var(--text-muted); margin-top: 4px;">启用后需要登录才能访问系统</small>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" v-model="config.auth.enabled" @change="onAuthToggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div v-if="config.auth.enabled" class="security-tip" style="margin-top: 12px;">
+                                <strong>💡 提示：</strong>请确保已创建管理员账户，否则首次启动时会显示注册页面。
+                            </div>
+                        </div>
+
                         <!-- 关于 -->
                         <div class="settings-section">
                             <h3>ℹ️ 关于</h3>
@@ -2584,7 +2652,8 @@
                     config: {
                         ikuai: { local_url: '', username: '', password: '' },
                         pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
-                                                            monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200, high_connection_threshold: 500, total_connection_threshold: 1000 }                    },
+                                                            monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200, high_connection_threshold: 500, total_connection_threshold: 1000 },
+                        auth: { enabled: false }                    },
                     prediction: null,
                     pushChannel: 'pushme',
                     ikuaiStatus: null,
@@ -3073,6 +3142,10 @@
                     } catch (e) {
                         alert('保存失败: ' + e.message);
                     }
+                },
+                onAuthToggle() {
+                    // 认证开关切换时保存配置
+                    this.saveSettings();
                 },
                 async loadDbStats() {
                     try {
