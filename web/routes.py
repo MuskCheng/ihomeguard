@@ -155,6 +155,16 @@ def resolve_alert(alert_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/alerts/resolve-all', methods=['POST'])
+def resolve_all_alerts():
+    """一键处理所有告警"""
+    try:
+        count = storage.resolve_all_alerts()
+        return jsonify({'success': True, 'count': count, 'message': f'已处理 {count} 条告警'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/stats/week')
 def get_week_stats():
     """获取最近14天统计"""

@@ -400,6 +400,20 @@ def resolve_alert(alert_id: int):
         ''', (now, alert_id))
 
 
+def resolve_all_alerts() -> int:
+    """处理所有未处理告警
+    
+    Returns:
+        处理的告警数量
+    """
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with get_db() as conn:
+        cursor = conn.execute('''
+            UPDATE alerts SET is_resolved = 1, resolved_at = ? WHERE is_resolved = 0
+        ''', (now,))
+        return cursor.rowcount
+
+
 def get_recent_alerts(limit: int = 20) -> list:
     """获取最近告警"""
     with get_db() as conn:

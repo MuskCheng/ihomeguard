@@ -2102,7 +2102,11 @@
                     <div class="card-header">
                         <span class="card-title-icon">⚠️</span>
                         <span>告警记录 ({{ alerts.length }} 条未处理)</span>
-                        <button class="btn btn-sm" @click="refreshAlerts" style="margin-left: auto;">🔄 刷新</button>
+                        <button v-if="alerts.length > 0" class="btn btn-sm btn-success" @click="resolveAllAlerts" :disabled="resolvingAll" style="margin-left: auto; margin-right: 8px;">
+                            <span v-if="resolvingAll" class="spinning">⏳</span>
+                            <span v-else>✓ 一键处理全部</span>
+                        </button>
+                        <button class="btn btn-sm" @click="refreshAlerts">🔄 刷新</button>
                     </div>
                     <div class="card-body">
                         <!-- 移动端告警卡片 -->
@@ -2576,6 +2580,7 @@
                     loading: false,
                     devices: [],
                     alerts: [],
+                    resolvingAll: false,
                     config: {
                         ikuai: { local_url: '', username: '', password: '' },
                         pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
@@ -3298,6 +3303,21 @@
                 async resolveAlert(alertId) {
                     await axios.post('/api/alert/' + alertId + '/resolve');
                     this.refreshAlerts();
+                },
+                async resolveAllAlerts() {
+                    if (!confirm('确定要处理所有告警吗？')) return;
+                    
+                    this.resolvingAll = true;
+                    try {
+                        const res = await axios.post('/api/alerts/resolve-all');
+                        if (res.data.success) {
+                            this.refreshAlerts();
+                        }
+                    } catch (e) {
+                        console.error('处理告警失败:', e);
+                    } finally {
+                        this.resolvingAll = false;
+                    }
                 },
                 initCharts() {
                     const colors = this.getChartColors();
