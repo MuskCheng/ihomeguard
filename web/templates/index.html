@@ -2424,7 +2424,87 @@
                                 提示：密码不在备份范围内，导入后需重新输入爱快密码
                             </small>
                         </div>
-                        
+
+                        <!-- 账户管理 -->
+                        <div class="settings-section" v-if="authRequired && authenticated">
+                            <h3>👤 账户管理</h3>
+
+                            <!-- 当前用户信息 -->
+                            <div class="about-item" style="margin-bottom: 16px;">
+                                <span class="about-label">当前登录</span>
+                                <span class="about-value" style="color: var(--accent-cyan);">{{ currentUsername || '未知' }}</span>
+                            </div>
+
+                            <!-- 修改密码 -->
+                            <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">修改密码</h4>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <input type="password" class="form-control" v-model="changePasswordOld"
+                                           placeholder="原密码" style="font-size: 0.9rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <input type="password" class="form-control" v-model="changePasswordNew"
+                                           placeholder="新密码（至少6位）" style="font-size: 0.9rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <input type="password" class="form-control" v-model="changePasswordConfirm"
+                                           placeholder="再次输入新密码" style="font-size: 0.9rem;">
+                                </div>
+                                <button class="btn btn-primary btn-sm" @click="doChangePassword" :disabled="changingPassword">
+                                    <span v-if="changingPassword" class="spinning">⏳</span>
+                                    <span v-else>修改密码</span>
+                                </button>
+                                <div v-if="changePasswordError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 8px;">
+                                    {{ changePasswordError }}
+                                </div>
+                                <div v-if="changePasswordSuccess" style="color: var(--accent-green); font-size: 0.8rem; margin-top: 8px;">
+                                    {{ changePasswordSuccess }}
+                                </div>
+                            </div>
+
+                            <!-- 用户列表（管理员可见） -->
+                            <div v-if="currentUserRole === 'admin'" style="background: var(--input-bg); border-radius: 12px; padding: 16px;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">用户列表</h4>
+                                <div v-for="user in userList" :key="user.username"
+                                     style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
+                                    <div>
+                                        <span style="font-weight: 500;">{{ user.username }}</span>
+                                        <span class="badge" :class="user.role === 'admin' ? 'badge-trusted' : 'badge-info'" style="margin-left: 8px;">
+                                            {{ user.role === 'admin' ? '管理员' : '用户' }}
+                                        </span>
+                                        <span v-if="user.username === currentUsername" class="badge badge-success" style="margin-left: 4px;">当前</span>
+                                    </div>
+                                    <button v-if="user.username !== currentUsername"
+                                            class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-red); padding: 4px 10px;"
+                                            @click="confirmDeleteUser(user.username)">
+                                        删除
+                                    </button>
+                                </div>
+
+                                <!-- 添加用户 -->
+                                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                    <h4 style="font-size: 0.85rem; margin-bottom: 10px; color: var(--text-muted);">添加新用户</h4>
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                        <input type="text" class="form-control" v-model="newUsername"
+                                               placeholder="用户名" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
+                                        <input type="password" class="form-control" v-model="newUserPassword"
+                                               placeholder="密码" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
+                                        <select class="form-control" v-model="newUserRole" style="width: auto; font-size: 0.85rem;">
+                                            <option value="user">用户</option>
+                                            <option value="admin">管理员</option>
+                                        </select>
+                                        <button class="btn btn-primary btn-sm" @click="doAddUser" :disabled="addingUser">
+                                            <span v-if="addingUser" class="spinning">⏳</span>
+                                            <span v-else>添加</span>
+                                        </button>
+                                    </div>
+                                    <div v-if="addUserError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 8px;">
+                                        {{ addUserError }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- 关于 -->
                         <div class="settings-section">
                             <h3>ℹ️ 关于</h3>
@@ -2533,6 +2613,20 @@
                     authRequired: false,
                     authenticated: false,
                     currentUsername: '',
+                    // 账户管理
+                    userList: [],
+                    currentUserRole: '',
+                    changePasswordOld: '',
+                    changePasswordNew: '',
+                    changePasswordConfirm: '',
+                    changingPassword: false,
+                    changePasswordError: '',
+                    changePasswordSuccess: '',
+                    newUsername: '',
+                    newUserPassword: '',
+                    newUserRole: 'user',
+                    addingUser: false,
+                    addUserError: '',
                     loginToken: '',
                     loginUsername: '',
                     loginPassword: '',
@@ -2622,6 +2716,7 @@
                         if (res.data.success) {
                             this.authenticated = true;
                             this.currentUsername = res.data.username;
+                            this.currentUserRole = res.data.role || 'user';
                             // 保存 JWT Token
                             const token = res.data.token;
                             localStorage.setItem('auth_token', token);
@@ -2693,12 +2788,126 @@
                         this.registering = false;
                     }
                 },
+                // ========== 账户管理 ==========
+                async loadUserList() {
+                    if (!this.authenticated) return;
+                    try {
+                        const res = await axios.get('/api/auth/users');
+                        if (res.data.success) {
+                            this.userList = res.data.users || [];
+                        }
+                    } catch (e) {
+                        console.error('获取用户列表失败:', e);
+                    }
+                },
+                async doChangePassword() {
+                    if (!this.changePasswordOld) {
+                        this.changePasswordError = '请输入原密码';
+                        return;
+                    }
+                    if (!this.changePasswordNew) {
+                        this.changePasswordError = '请输入新密码';
+                        return;
+                    }
+                    if (this.changePasswordNew.length < 6) {
+                        this.changePasswordError = '新密码至少6个字符';
+                        return;
+                    }
+                    if (this.changePasswordNew !== this.changePasswordConfirm) {
+                        this.changePasswordError = '两次输入的新密码不一致';
+                        return;
+                    }
+
+                    this.changingPassword = true;
+                    this.changePasswordError = '';
+                    this.changePasswordSuccess = '';
+
+                    try {
+                        const res = await axios.post('/api/auth/change-password', {
+                            old_password: this.changePasswordOld,
+                            new_password: this.changePasswordNew
+                        });
+
+                        if (res.data.success) {
+                            this.changePasswordSuccess = '密码修改成功';
+                            this.changePasswordOld = '';
+                            this.changePasswordNew = '';
+                            this.changePasswordConfirm = '';
+                        } else {
+                            this.changePasswordError = res.data.error || '修改失败';
+                        }
+                    } catch (e) {
+                        this.changePasswordError = '修改失败: ' + (e.response?.data?.error || e.message);
+                    } finally {
+                        this.changingPassword = false;
+                    }
+                },
+                async doAddUser() {
+                    if (!this.newUsername) {
+                        this.addUserError = '请输入用户名';
+                        return;
+                    }
+                    if (this.newUsername.length < 3) {
+                        this.addUserError = '用户名至少3个字符';
+                        return;
+                    }
+                    if (!this.newUserPassword) {
+                        this.addUserError = '请输入密码';
+                        return;
+                    }
+                    if (this.newUserPassword.length < 6) {
+                        this.addUserError = '密码至少6个字符';
+                        return;
+                    }
+
+                    this.addingUser = true;
+                    this.addUserError = '';
+
+                    try {
+                        const res = await axios.post('/api/auth/users', {
+                            username: this.newUsername,
+                            password: this.newUserPassword,
+                            role: this.newUserRole
+                        });
+
+                        if (res.data.success) {
+                            this.newUsername = '';
+                            this.newUserPassword = '';
+                            this.newUserRole = 'user';
+                            this.loadUserList();
+                        } else {
+                            this.addUserError = res.data.error || '添加失败';
+                        }
+                    } catch (e) {
+                        this.addUserError = '添加失败: ' + (e.response?.data?.error || e.message);
+                    } finally {
+                        this.addingUser = false;
+                    }
+                },
+                confirmDeleteUser(username) {
+                    if (confirm(`确定要删除用户 "${username}" 吗？`)) {
+                        this.doDeleteUser(username);
+                    }
+                },
+                async doDeleteUser(username) {
+                    try {
+                        const res = await axios.delete(`/api/auth/users/${username}`);
+                        if (res.data.success) {
+                            this.loadUserList();
+                        } else {
+                            alert(res.data.error || '删除失败');
+                        }
+                    } catch (e) {
+                        alert('删除失败: ' + (e.response?.data?.error || e.message));
+                    }
+                },
                 loadInitialData() {
                     Promise.all([
                         this.refreshDevices(),
                         this.refreshAlerts(),
                         this.loadConfig(),
-                        this.loadSystemInfo()
+                        this.loadSystemInfo(),
+                        this.loadUserList()
                     ]).then(() => {
                         setTimeout(() => this.preloadStatsData(), 2000);
                         this.checkForUpdate();

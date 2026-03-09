@@ -850,13 +850,24 @@ def change_password():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def is_admin() -> bool:
+    """检查当前用户是否为管理员"""
+    if not getattr(g, 'authenticated', False):
+        return False
+    username = getattr(g, 'username', '')
+    if not username:
+        return False
+    user = get_user(username)
+    return user and user.get('role') == 'admin'
+
+
 @app.route('/api/auth/users')
 def list_users():
     """获取用户列表（需要管理员权限）"""
     try:
-        if not getattr(g, 'authenticated', False):
-            return jsonify({'success': False, 'error': '需要登录'}), 401
-        
+        if not is_admin():
+            return jsonify({'success': False, 'error': '需要管理员权限'}), 403
+
         users = get_all_users()
         return jsonify({'success': True, 'users': users})
     except Exception as e:
@@ -867,26 +878,26 @@ def list_users():
 def add_user():
     """创建用户（需要管理员权限）"""
     try:
-        if not getattr(g, 'authenticated', False):
-            return jsonify({'success': False, 'error': '需要登录'}), 401
-        
+        if not is_admin():
+            return jsonify({'success': False, 'error': '需要管理员权限'}), 403
+
         data = request.get_json() or {}
         username = data.get('username', '').strip()
         password = data.get('password', '')
         role = data.get('role', 'user')
-        
+
         if not username or not password:
             return jsonify({'success': False, 'error': '用户名和密码不能为空'})
-        
+
         if len(password) < 6:
             return jsonify({'success': False, 'error': '密码至少 6 个字符'})
-        
+
         if create_user(username, password, role):
             logger.info(f"创建用户: {username}")
             return jsonify({'success': True, 'message': '用户创建成功'})
         else:
             return jsonify({'success': False, 'error': '用户已存在或创建失败'})
-            
+
     except Exception as e:
         logger.error(f"创建用户失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -896,13 +907,13 @@ def add_user():
 def remove_user(username):
     """删除用户（需要管理员权限）"""
     try:
-        if not getattr(g, 'authenticated', False):
-            return jsonify({'success': False, 'error': '需要登录'}), 401
-        
+        if not is_admin():
+            return jsonify({'success': False, 'error': '需要管理员权限'}), 403
+
         # 不允许删除自己
         if username == getattr(g, 'username', ''):
             return jsonify({'success': False, 'error': '不能删除当前登录用户'})
-        
+
         if delete_user(username):
             logger.info(f"删除用户: {username}")
             return jsonify({'success': True, 'message': '用户已删除'})
