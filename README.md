@@ -8,7 +8,7 @@
 
   <i>一个现代化的家庭网络监控与管理工具</i>
 
-  [![Version](https://img.shields.io/badge/Version-1.1.0-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
+  [![Version](https://img.shields.io/badge/Version-1.2.3-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
   [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
   [![Flask](https://img.shields.io/badge/Flask-3.1-green?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -33,6 +33,8 @@
 - 🚨 **智能告警** - 新设备检测、设备离线、流量异常告警
 - 📬 **多渠道推送** - 支持 PushMe、企业微信、钉钉
 - 🔐 **安全存储** - 敏感数据加密存储，保护隐私安全
+- 🔑 **Token 认证** - 可选的身份认证保护（v1.2.3+）
+- 💾 **配置备份** - 支持配置导出导入（v1.2.3+）
 
 ---
 
@@ -56,7 +58,7 @@
 
 ### 📊 流量统计
 - 实时流量图表
-- 7天流量趋势
+- 14天流量趋势
 - 设备在线统计
 - 月度流量预测
 - 今日流量汇总
@@ -88,25 +90,61 @@
 
 </td>
 </tr>
+<tr>
+<td width="50%">
+
+### 🔐 安全特性
+- 可选 Token 认证
+- 敏感字段脱敏显示
+- 密码加密存储
+- 认证状态持久化
+
+</td>
+<td width="50%">
+
+### ⚙️ 系统功能
+- 配置备份/恢复
+- 版本更新检查
+- 数据库维护
+- 日志级别控制
+
+</td>
+</tr>
 </table>
 
 ---
 
 ## 📸 截图预览
 
+### 桌面端
+
 <div align="center">
+
+| 设备监控 | 流量统计 |
+|:---:|:---:|
+| ![Desktop Home](docs/screenshots/desktop-home-1440px.jpg) | ![Stats](docs/screenshots/stats.png) |
+
+| 告警管理 | 系统设置 |
+|:---:|:---:|
+| ![Alerts](docs/screenshots/alerts.png) | ![Settings](docs/screenshots/settings.png) |
 
 | 深色模式 | 浅色模式 |
 |:---:|:---:|
 | ![Dark Mode](docs/screenshots/dark-mode.png) | ![Light Mode](docs/screenshots/light-mode.png) |
 
-| 设备列表 | 流量统计 |
-|:---:|:---:|
-| ![Devices](docs/screenshots/devices.png) | ![Stats](docs/screenshots/stats.png) |
+</div>
 
-| 告警管理 | 系统设置 |
+### 移动端
+
+<div align="center">
+
+| 设备列表 | 流量统计 | 告警管理 |
+|:---:|:---:|:---:|
+| ![Mobile Home](docs/screenshots/mobile-home-375px.jpg) | ![Mobile Stats](docs/screenshots/mobile-stats-375px.jpg) | ![Mobile Alerts](docs/screenshots/mobile-alerts-375px.jpg) |
+
+| 系统设置 | 菜单导航 |
 |:---:|:---:|
-| ![Alerts](docs/screenshots/alerts.png) | ![Settings](docs/screenshots/settings.png) |
+| ![Mobile Settings](docs/screenshots/mobile-settings-375px.jpg) | ![Mobile Menu](docs/screenshots/mobile-menu-open-375px.jpg) |
 
 </div>
 
@@ -158,6 +196,16 @@ python app.py
 
 ## ⚙️ 配置说明
 
+### 环境变量
+
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `AUTH_TOKEN` | 认证 Token（启用后需验证） | 无（不启用认证） |
+| `LOG_LEVEL` | 日志级别 | INFO |
+| `IKUAI_URL` | 爱快路由器地址 | 配置文件 |
+| `IKUAI_USER` | 爱快用户名 | 配置文件 |
+| `IKUAI_PASS` | 爱快密码 | 配置文件 |
+
 ### 爱快路由器配置
 
 | 配置项 | 说明 | 示例 |
@@ -200,6 +248,7 @@ ihomeguard/
 ├── 📄 config.py              # 配置管理
 ├── 📄 storage.py             # 数据存储层
 ├── 📄 scheduler.py           # 定时任务调度
+├── 📄 logger.py              # 统一日志模块
 ├── 📄 requirements.txt       # Python 依赖
 ├── 📄 Dockerfile             # Docker 构建文件
 ├── 📄 docker-compose.yml     # Docker Compose 配置
@@ -210,11 +259,16 @@ ihomeguard/
 │   ├── 📄 alerter.py         # 告警检测
 │   ├── 📄 reporter.py        # 日报生成
 │   ├── 📄 pusher.py          # 推送服务
-│   └── 📄 vendor.py          # 设备厂商查询
+│   ├── 📄 vendor.py          # 设备厂商查询
+│   ├── 📄 auth.py            # 认证中间件
+│   ├── 📄 backup.py          # 备份恢复服务
+│   └── 📄 updater.py         # 版本检查服务
 ├── 📂 web/                   # Web 层
 │   ├── 📄 routes.py          # API 路由
 │   ├── 📂 static/            # 静态资源
 │   └── 📂 templates/         # HTML 模板
+├── 📂 docs/                  # 文档
+│   └── 📂 screenshots/       # 截图
 ├── 📂 data/                  # 数据目录
 └── 📂 config/                # 配置目录
 ```
@@ -257,6 +311,17 @@ ihomeguard/
 | `/api/test/ikuai` | POST | 测试爱快连接 |
 | `/api/test/push` | POST | 测试推送 |
 | `/api/health` | GET | 健康检查 |
+| `/api/system/info` | GET | 获取系统信息 |
+| `/api/system/update/check` | GET | 检查版本更新 |
+| `/api/backup/export` | POST | 导出备份 |
+| `/api/backup/import` | POST | 导入备份 |
+
+### 认证相关
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/auth/status` | GET | 获取认证状态 |
+| `/api/auth/login` | POST | Token 登录 |
 
 ---
 

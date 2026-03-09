@@ -31,3 +31,8 @@ Thumbs.db
 
 # Build scripts (contains sensitive info)
 push.bat
+
+# Temporary files
+*.json.bak
+traffic.json
+update-libs.py
