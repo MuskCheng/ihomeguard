@@ -9,7 +9,15 @@ from clients.ikuai_local import IKuaiLocalClient
 from services.monitor import MonitorService
 from services.reporter import ReporterService
 from services.vendor import get_vendor_cached
-from services.auth import init_auth_middleware, is_auth_enabled, check_auth, generate_token
+from services.auth import (
+    init_auth_middleware, is_auth_enabled, check_auth,
+    verify_password,
+    check_lockout, record_failed_attempt, clear_failed_attempts, get_remaining_attempts,
+    create_jwt_token, verify_jwt_token,
+    get_user, get_all_users, create_user, update_user_password, delete_user,
+    ensure_default_user,
+    needs_initialization, initialize_admin
+)
 from logger import get_logger
 
 logger = get_logger('web')
@@ -659,48 +667,250 @@ def auth_status():
     return jsonify({
         'success': True,
         'auth_enabled': is_auth_enabled(),
-        'authenticated': getattr(g, 'authenticated', False)
+        'authenticated': getattr(g, 'authenticated', False),
+        'username': getattr(g, 'username', None),
+        'needs_init': needs_initialization()
     })
+
+
+@app.route('/api/auth/init', methods=['POST'])
+def auth_init():
+    """初始化管理员账户（首次运行注册）
+    
+    仅在 needs_init 为 true 时可用
+    """
+    try:
+        # 检查是否需要初始化
+        if not needs_initialization():
+            return jsonify({'success': False, 'error': '系统已初始化'}), 400
+        
+        data = request.get_json() or {}
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        password_confirm = data.get('password_confirm', '')
+        
+        # 验证用户名
+        if not username:
+            return jsonify({'success': False, 'error': '请输入用户名'})
+        
+        if len(username) < 3:
+            return jsonify({'success': False, 'error': '用户名至少 3 个字符'})
+        
+        if not username.isalnum():
+            return jsonify({'success': False, 'error': '用户名只能包含字母和数字'})
+        
+        # 验证密码
+        if not password:
+            return jsonify({'success': False, 'error': '请输入密码'})
+        
+        if len(password) < 6:
+            return jsonify({'success': False, 'error': '密码至少 6 个字符'})
+        
+        # 验证两次密码一致
+        if password != password_confirm:
+            return jsonify({'success': False, 'error': '两次输入的密码不一致'})
+        
+        # 初始化管理员
+        success, message = initialize_admin(username, password)
+        
+        if success:
+            logger.info(f"管理员注册成功: {username}")
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'error': message})
+            
+    except Exception as e:
+        logger.error(f"初始化失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/auth/login', methods=['POST'])
 def auth_login():
-    """登录验证 Token"""
+    """登录验证
+    
+    提交 {username, password}
+    密码通过 HTTPS 传输，服务端使用 bcrypt 验证
+    """
     try:
         data = request.get_json() or {}
-        token = data.get('token', '')
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
         
-        if not token:
-            return jsonify({'success': False, 'error': '请输入 Token'})
+        if not username:
+            return jsonify({'success': False, 'error': '请输入用户名'})
         
-        if check_auth(token):
-            return jsonify({'success': True, 'message': '认证成功'})
+        if not password:
+            return jsonify({'success': False, 'error': '请输入密码'})
+        
+        # 检查账户锁定
+        is_locked, lock_msg = check_lockout(username)
+        if is_locked:
+            return jsonify({'success': False, 'error': lock_msg})
+        
+        # 获取用户信息
+        user = get_user(username)
+        if not user:
+            record_failed_attempt(username)
+            remaining = get_remaining_attempts(username)
+            return jsonify({
+                'success': False,
+                'error': f'用户名或密码错误，剩余 {remaining} 次尝试机会'
+            })
+        
+        # 验证密码
+        if verify_password(password, user['password_hash']):
+            # 登录成功
+            clear_failed_attempts(username)
+            
+            # 生成 JWT Token
+            token = create_jwt_token(username, role=user.get('role', 'user'))
+            
+            logger.info(f"用户登录成功: {username}")
+            
+            # 设置 Cookie
+            response = jsonify({
+                'success': True,
+                'message': '登录成功',
+                'token': token,
+                'username': username,
+                'role': user.get('role', 'user')
+            })
+            response.set_cookie('auth_token', token, 
+                              max_age=86400,  # 24小时
+                              httponly=True, 
+                              samesite='Lax')
+            
+            return response
         else:
-            return jsonify({'success': False, 'error': 'Token 无效'})
+            # 登录失败
+            record_failed_attempt(username)
+            remaining = get_remaining_attempts(username)
+            
+            if remaining <= 0:
+                return jsonify({
+                    'success': False,
+                    'error': '登录失败次数过多，账户已锁定 5 分钟'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'用户名或密码错误，剩余 {remaining} 次尝试机会'
+                })
+        
     except Exception as e:
         logger.error(f"登录失败: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/api/auth/token', methods=['POST'])
-def generate_auth_token():
-    """生成新 Token（需要已认证）"""
+@app.route('/api/auth/logout', methods=['POST'])
+def auth_logout():
+    """登出"""
+    response = jsonify({'success': True, 'message': '已登出'})
+    response.delete_cookie('auth_token')
+    return response
+
+
+@app.route('/api/auth/change-password', methods=['POST'])
+def change_password():
+    """修改密码（需要已登录）"""
     try:
         # 检查是否已认证
         if not getattr(g, 'authenticated', False):
-            return jsonify({'success': False, 'error': '需要认证'}), 401
+            return jsonify({'success': False, 'error': '需要登录'}), 401
         
-        new_token = generate_token()
+        data = request.get_json() or {}
+        old_password = data.get('old_password', '')
+        new_password = data.get('new_password', '')
+        username = getattr(g, 'username', '')
         
-        # 保存到配置
-        cfg = config.get_config()
-        cfg['auth']['token'] = new_token
-        config.save_config(cfg)
+        if not old_password or not new_password:
+            return jsonify({'success': False, 'error': '请填写完整'})
         
-        logger.info("生成新 Token")
-        return jsonify({'success': True, 'token': new_token})
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'error': '新密码至少 6 个字符'})
+        
+        # 验证旧密码
+        user = get_user(username)
+        if not user or not verify_password(old_password, user['password_hash']):
+            return jsonify({'success': False, 'error': '原密码错误'})
+        
+        # 更新密码
+        if update_user_password(username, new_password):
+            logger.info(f"用户修改密码: {username}")
+            return jsonify({'success': True, 'message': '密码修改成功'})
+        else:
+            return jsonify({'success': False, 'error': '密码修改失败'})
+            
     except Exception as e:
-        logger.error(f"生成 Token 失败: {e}")
+        logger.error(f"修改密码失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auth/users')
+def list_users():
+    """获取用户列表（需要管理员权限）"""
+    try:
+        if not getattr(g, 'authenticated', False):
+            return jsonify({'success': False, 'error': '需要登录'}), 401
+        
+        users = get_all_users()
+        return jsonify({'success': True, 'users': users})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auth/users', methods=['POST'])
+def add_user():
+    """创建用户（需要管理员权限）"""
+    try:
+        if not getattr(g, 'authenticated', False):
+            return jsonify({'success': False, 'error': '需要登录'}), 401
+        
+        data = request.get_json() or {}
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        role = data.get('role', 'user')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'error': '用户名和密码不能为空'})
+        
+        if len(password) < 6:
+            return jsonify({'success': False, 'error': '密码至少 6 个字符'})
+        
+        if create_user(username, password, role):
+            logger.info(f"创建用户: {username}")
+            return jsonify({'success': True, 'message': '用户创建成功'})
+        else:
+            return jsonify({'success': False, 'error': '用户已存在或创建失败'})
+            
+    except Exception as e:
+        logger.error(f"创建用户失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auth/users/<username>', methods=['DELETE'])
+def remove_user(username):
+    """删除用户（需要管理员权限）"""
+    try:
+        if not getattr(g, 'authenticated', False):
+            return jsonify({'success': False, 'error': '需要登录'}), 401
+        
+        # 不允许删除自己
+        if username == getattr(g, 'username', ''):
+            return jsonify({'success': False, 'error': '不能删除当前登录用户'})
+        
+        if delete_user(username):
+            logger.info(f"删除用户: {username}")
+            return jsonify({'success': True, 'message': '用户已删除'})
+        else:
+            return jsonify({'success': False, 'error': '用户不存在或删除失败'})
+            
+    except Exception as e:
+        logger.error(f"删除用户失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -714,6 +924,9 @@ def init_app():
     # 初始化认证中间件
     init_auth_middleware(app)
     logger.info("认证中间件已初始化")
+    
+    # 确保默认用户存在
+    ensure_default_user()
     
     # 检查配置
     is_valid, missing = config.validate_config()

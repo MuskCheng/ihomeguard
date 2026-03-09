@@ -1721,27 +1721,70 @@
 </head>
 <body>
     <div id="app">
-        <!-- 登录弹窗 -->
+        <!-- 认证弹窗（注册/登录） -->
         <div v-if="authRequired && !authenticated" class="login-overlay">
             <div class="login-dialog">
-                <div class="login-header">
-                    <img src="/static/iHG.png" alt="iHG" class="login-logo">
-                    <h2>iHomeGuard</h2>
-                    <p>请输入访问 Token</p>
-                </div>
-                <div class="login-form">
-                    <input type="password" 
-                           class="form-control login-input" 
-                           v-model="loginToken" 
-                           placeholder="输入 Token"
-                           @keyup.enter="doLogin"
-                           autofocus>
-                    <button class="btn btn-primary login-btn" @click="doLogin" :disabled="loggingIn">
-                        <span v-if="loggingIn" class="spinning">⏳</span>
-                        <span v-else>登录</span>
-                    </button>
-                    <div v-if="loginError" class="login-error">{{ loginError }}</div>
-                </div>
+                <!-- 注册界面（首次初始化） -->
+                <template v-if="needsInit">
+                    <div class="login-header">
+                        <img src="/static/iHG.png" alt="iHG" class="login-logo">
+                        <h2>iHomeGuard</h2>
+                        <p>首次运行，请创建管理员账户</p>
+                    </div>
+                    <div class="login-form">
+                        <input type="text" 
+                               class="form-control login-input" 
+                               v-model="registerUsername" 
+                               placeholder="管理员用户名"
+                               @keyup.enter="$refs.registerPassword.focus()"
+                               autofocus>
+                        <input type="password" 
+                               class="form-control login-input" 
+                               v-model="registerPassword" 
+                               placeholder="设置密码（至少6位）"
+                               ref="registerPassword"
+                               @keyup.enter="$refs.registerPasswordConfirm.focus()">
+                        <input type="password" 
+                               class="form-control login-input" 
+                               v-model="registerPasswordConfirm" 
+                               placeholder="再次输入密码"
+                               ref="registerPasswordConfirm"
+                               @keyup.enter="doRegister">
+                        <button class="btn btn-primary login-btn" @click="doRegister" :disabled="registering">
+                            <span v-if="registering" class="spinning">⏳</span>
+                            <span v-else>创建账户</span>
+                        </button>
+                        <div v-if="registerError" class="login-error">{{ registerError }}</div>
+                    </div>
+                </template>
+                
+                <!-- 登录界面 -->
+                <template v-else>
+                    <div class="login-header">
+                        <img src="/static/iHG.png" alt="iHG" class="login-logo">
+                        <h2>iHomeGuard</h2>
+                        <p>请登录以继续访问</p>
+                    </div>
+                    <div class="login-form">
+                        <input type="text" 
+                               class="form-control login-input" 
+                               v-model="loginUsername" 
+                               placeholder="用户名"
+                               @keyup.enter="$refs.passwordInput.focus()"
+                               autofocus>
+                        <input type="password" 
+                               class="form-control login-input" 
+                               v-model="loginPassword" 
+                               placeholder="密码"
+                               ref="passwordInput"
+                               @keyup.enter="doLogin">
+                        <button class="btn btn-primary login-btn" @click="doLogin" :disabled="loggingIn">
+                            <span v-if="loggingIn" class="spinning">⏳</span>
+                            <span v-else>登录</span>
+                        </button>
+                        <div v-if="loginError" class="login-error">{{ loginError }}</div>
+                    </div>
+                </template>
             </div>
         </div>
         
@@ -2394,7 +2437,7 @@
                                     <span class="about-label">当前版本</span>
                                     <span class="about-value">
                                         v{{ systemInfo.version || '...' }}
-                                        <span v-if="updateInfo.has_update" class="badge badge-warning" style="margin-left: 8px;">有新版本</span>
+                                        <span v-if="updateInfo.has_update" class="badge badge-warning" style="margin-left: 8px;">新版本 {{ updateInfo.latest_version }}</span>
                                     </span>
                                 </div>
                                 <div v-if="updateInfo.has_update" class="about-item">
@@ -2411,8 +2454,13 @@
                                     📦 GitHub
                                 </a>
                             </div>
-                            <div v-if="updateInfo.error" class="update-error" style="margin-top: 10px; color: var(--accent-orange); font-size: 0.85rem;">
-                                {{ updateInfo.error }}
+                            <!-- 检查更新状态 -->
+                            <div class="update-status" style="margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; text-align: center;"
+                                 :style="updateStatusStyle">
+                                <span v-if="checkingUpdate">⏳ 正在检查更新...</span>
+                                <span v-else-if="updateInfo.error" style="color: var(--accent-orange);">❌ {{ updateInfo.error }}</span>
+                                <span v-else-if="updateInfo.has_update" style="color: var(--accent-green);">🎉 发现新版本 {{ updateInfo.latest_version }}，请前往 GitHub 下载更新</span>
+                                <span v-else-if="updateInfo.checked && !updateInfo.has_update" style="color: var(--accent-cyan);">✅ 当前已是最新版本</span>
                             </div>
                             <!-- 更新日志 -->
                             <div v-if="updateInfo.releases && updateInfo.releases.length > 0" class="changelog-section" style="margin-top: 20px;">
@@ -2470,7 +2518,7 @@
                     dbStats: null,
                     cleaningDb: false,
                     systemInfo: { version: '' },
-                    updateInfo: { has_update: false, releases: [], error: '' },
+                    updateInfo: { has_update: false, releases: [], error: '', checked: false },
                     checkingUpdate: false,
                     // 备份相关
                     backupStats: null,
@@ -2484,9 +2532,19 @@
                     // 认证相关
                     authRequired: false,
                     authenticated: false,
+                    currentUsername: '',
                     loginToken: '',
+                    loginUsername: '',
+                    loginPassword: '',
                     loggingIn: false,
-                    loginError: ''
+                    loginError: '',
+                    // 注册相关
+                    needsInit: false,
+                    registerUsername: '',
+                    registerPassword: '',
+                    registerPasswordConfirm: '',
+                    registering: false,
+                    registerError: ''
                 };
             },
             computed: {
@@ -2510,6 +2568,21 @@
                     if (conn > threshold) return 'danger';
                     if (conn > threshold * 0.7) return 'warning';
                     return 'primary';
+                },
+                updateStatusStyle() {
+                    if (this.checkingUpdate) {
+                        return { background: 'var(--input-bg)', border: '1px solid var(--border-color)' };
+                    }
+                    if (this.updateInfo.error) {
+                        return { background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' };
+                    }
+                    if (this.updateInfo.has_update) {
+                        return { background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)' };
+                    }
+                    if (this.updateInfo.checked) {
+                        return { background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.3)' };
+                    }
+                    return { display: 'none' };
                 }
             },
             methods: {
@@ -2519,6 +2592,7 @@
                         const res = await axios.get('/api/auth/status');
                         this.authRequired = res.data.auth_enabled;
                         this.authenticated = res.data.authenticated;
+                        this.needsInit = res.data.needs_init || false;
                         
                         if (!this.authRequired || this.authenticated) {
                             this.loadInitialData();
@@ -2530,26 +2604,93 @@
                     }
                 },
                 async doLogin() {
-                    if (!this.loginToken) {
-                        this.loginError = '请输入 Token';
+                    if (!this.loginUsername) {
+                        this.loginError = '请输入用户名';
+                        return;
+                    }
+                    if (!this.loginPassword) {
+                        this.loginError = '请输入密码';
                         return;
                     }
                     this.loggingIn = true;
                     this.loginError = '';
                     try {
-                        const res = await axios.post('/api/auth/login', { token: this.loginToken });
+                        const res = await axios.post('/api/auth/login', {
+                            username: this.loginUsername,
+                            password: this.loginPassword
+                        });
                         if (res.data.success) {
                             this.authenticated = true;
-                            localStorage.setItem('auth_token', this.loginToken);
-                            axios.defaults.headers.common['Authorization'] = 'Bearer ' + this.loginToken;
+                            this.currentUsername = res.data.username;
+                            // 保存 JWT Token
+                            const token = res.data.token;
+                            localStorage.setItem('auth_token', token);
+                            axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
                             this.loadInitialData();
                         } else {
-                            this.loginError = res.data.error || 'Token 无效';
+                            this.loginError = res.data.error || '登录失败';
                         }
                     } catch (e) {
                         this.loginError = '登录失败: ' + (e.response?.data?.error || e.message);
                     } finally {
                         this.loggingIn = false;
+                    }
+                },
+                async doRegister() {
+                    // 验证用户名
+                    if (!this.registerUsername) {
+                        this.registerError = '请输入用户名';
+                        return;
+                    }
+                    if (this.registerUsername.length < 3) {
+                        this.registerError = '用户名至少 3 个字符';
+                        return;
+                    }
+                    if (!/^[a-zA-Z0-9]+$/.test(this.registerUsername)) {
+                        this.registerError = '用户名只能包含字母和数字';
+                        return;
+                    }
+                    
+                    // 验证密码
+                    if (!this.registerPassword) {
+                        this.registerError = '请输入密码';
+                        return;
+                    }
+                    if (this.registerPassword.length < 6) {
+                        this.registerError = '密码至少 6 个字符';
+                        return;
+                    }
+                    
+                    // 验证两次密码一致
+                    if (this.registerPassword !== this.registerPasswordConfirm) {
+                        this.registerError = '两次输入的密码不一致';
+                        return;
+                    }
+                    
+                    this.registering = true;
+                    this.registerError = '';
+                    
+                    try {
+                        const res = await axios.post('/api/auth/init', {
+                            username: this.registerUsername,
+                            password: this.registerPassword,
+                            password_confirm: this.registerPasswordConfirm
+                        });
+                        
+                        if (res.data.success) {
+                            // 注册成功，切换到登录界面
+                            this.needsInit = false;
+                            this.loginUsername = this.registerUsername;
+                            this.registerUsername = '';
+                            this.registerPassword = '';
+                            this.registerPasswordConfirm = '';
+                        } else {
+                            this.registerError = res.data.error || '注册失败';
+                        }
+                    } catch (e) {
+                        this.registerError = '注册失败: ' + (e.response?.data?.error || e.message);
+                    } finally {
+                        this.registering = false;
                     }
                 },
                 loadInitialData() {
@@ -2758,7 +2899,7 @@
                 },
                 async checkForUpdate() {
                     this.checkingUpdate = true;
-                    this.updateInfo = { has_update: false, releases: [], error: '' };
+                    this.updateInfo = { has_update: false, releases: [], error: '', checked: false };
                     try {
                         const res = await axios.get('/api/system/update/check');
                         if (res.data.success) {
@@ -2767,13 +2908,15 @@
                                 latest_version: res.data.latest_version,
                                 has_update: res.data.has_update,
                                 releases: res.data.releases || [],
-                                error: res.data.error || ''
+                                error: res.data.error || '',
+                                checked: true
                             };
                             // 同步更新 systemInfo
                             this.systemInfo.version = res.data.current_version;
                         }
                     } catch (e) {
                         this.updateInfo.error = '检查更新失败: ' + e.message;
+                        this.updateInfo.checked = true;
                     } finally {
                         this.checkingUpdate = false;
                     }

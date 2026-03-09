@@ -184,7 +184,9 @@ def get_default_config():
         },
         "auth": {
             "enabled": bool(os.environ.get('AUTH_TOKEN', '')),
-            "token": os.environ.get('AUTH_TOKEN', '')
+            "token": os.environ.get('AUTH_TOKEN', ''),
+            "users": [],
+            "jwt_secret": os.environ.get('JWT_SECRET', '')
         }
     }
 
