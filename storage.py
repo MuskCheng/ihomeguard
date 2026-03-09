@@ -3,6 +3,9 @@ import sqlite3
 import os
 from datetime import datetime
 from contextlib import contextmanager
+from logger import get_logger
+
+logger = get_logger('storage')
 
 # 使用 config 模块中的 DATA_DIR
 def _get_db_path():
@@ -156,9 +159,9 @@ def _migrate_database(conn):
             columns = [row[1] for row in cursor.fetchall()]
             if column not in columns:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
-                print(f"[数据库迁移] {table}.{column} 列已添加")
+                logger.info(f"数据库迁移: {table}.{column} 列已添加")
         except Exception as e:
-            print(f"[数据库迁移警告] {table}.{column}: {e}")
+            logger.warning(f"数据库迁移: {table}.{column}: {e}")
 
 
 # ========== 设备操作 ==========
@@ -650,9 +653,9 @@ def vacuum_database():
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute('VACUUM')
-        print("[数据库] VACUUM 完成，空间已回收")
+        logger.info("数据库 VACUUM 完成，空间已回收")
     except Exception as e:
-        print(f"[数据库] VACUUM 失败: {e}")
+        logger.error(f"数据库 VACUUM 失败: {e}")
         raise
     finally:
         conn.close()

@@ -1,5 +1,6 @@
 """Web 路由 - RESTful API"""
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, g
+from datetime import datetime
 import sys
 sys.path.insert(0, '..')
 import config
@@ -8,6 +9,10 @@ from clients.ikuai_local import IKuaiLocalClient
 from services.monitor import MonitorService
 from services.reporter import ReporterService
 from services.vendor import get_vendor_cached
+from services.auth import init_auth_middleware, is_auth_enabled, check_auth, generate_token
+from logger import get_logger
+
+logger = get_logger('web')
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -345,7 +350,7 @@ def get_config():
     try:
         cfg = config.get_config()
         
-        # 密码脱敏，push_key 明文显示
+        # 密码脱敏
         result = {
             'ikuai': {
                 'local_url': cfg['ikuai'].get('local_url', ''),
@@ -354,18 +359,25 @@ def get_config():
                 'connection_validated': cfg['ikuai'].get('connection_validated', False)
             },
             'pushme': {
-                'push_key': cfg['pushme'].get('push_key', ''),  # 明文显示
+                'push_key': config.mask_sensitive(cfg['pushme'].get('push_key', ''), 4),
+                'push_key_set': bool(cfg['pushme'].get('push_key', '')),
                 'wecom_webhook': cfg['pushme'].get('wecom_webhook', ''),
                 'dingtalk_webhook': cfg['pushme'].get('dingtalk_webhook', ''),
-                'dingtalk_secret': cfg['pushme'].get('dingtalk_secret', ''),
+                'dingtalk_secret': '****' if cfg['pushme'].get('dingtalk_secret') else '',
+                'dingtalk_secret_set': bool(cfg['pushme'].get('dingtalk_secret', '')),
                 'enabled': cfg['pushme'].get('enabled', True)
             },
             'monitor': cfg.get('monitor', {}),
-            'web': cfg.get('web', {})
+            'web': cfg.get('web', {}),
+            'auth': {
+                'enabled': cfg.get('auth', {}).get('enabled', False),
+                'token_set': bool(cfg.get('auth', {}).get('token', ''))
+            }
         }
         
         return jsonify(result)
     except Exception as e:
+        logger.error(f"获取配置失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -386,11 +398,28 @@ def save_config():
                 ikuai_data['password'] = cfg['ikuai'].get('password', '')
             cfg['ikuai'].update(ikuai_data)
         if 'pushme' in data:
-            # push_key 直接保存，其他webhook检测空值
             pushme_data = data['pushme']
+            # push_key 脱敏处理
+            push_key = pushme_data.get('push_key', '')
+            if push_key and ('****' in push_key or len(push_key) < 10):
+                # 脱敏值或太短，保持原值
+                pushme_data['push_key'] = cfg['pushme'].get('push_key', '')
+            # dingtalk_secret 脱敏处理
+            secret = pushme_data.get('dingtalk_secret', '')
+            if secret == '****':
+                pushme_data['dingtalk_secret'] = cfg['pushme'].get('dingtalk_secret', '')
             cfg['pushme'].update(pushme_data)
         if 'monitor' in data:
             cfg['monitor'].update(data['monitor'])
+        if 'auth' in data:
+            auth_data = data['auth']
+            # Token 脱敏处理
+            token = auth_data.get('token', '')
+            if token and ('****' in token or len(token) < 10):
+                auth_data['token'] = cfg.get('auth', {}).get('token', '')
+            if 'auth' not in cfg:
+                cfg['auth'] = {}
+            cfg['auth'].update(auth_data)
         
         config.save_config(cfg)
         
@@ -401,6 +430,7 @@ def save_config():
         
         return jsonify({'success': True, 'message': '配置已保存'})
     except Exception as e:
+        logger.error(f"保存配置失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -409,7 +439,7 @@ def test_ikuai():
     """测试爱快连接"""
     try:
         data = request.get_json()
-        print(f"[调试] 测试爱快连接: {data}")
+        logger.debug(f"测试爱快连接: {data}")
         
         # 检查密码是否存在
         password = data.get('password', '')
@@ -438,7 +468,7 @@ def test_ikuai():
                 cfg['ikuai']['password'] = data.get('password')
             cfg['ikuai']['connection_validated'] = True
             config.save_config(cfg)
-            print(f"[调试] 配置已保存")
+            logger.debug("配置已保存")
             
             # 重新初始化服务
             global _monitor
@@ -501,7 +531,7 @@ def test_push():
         if 'dingtalk_secret' in data and data['dingtalk_secret']:
             cfg['pushme']['dingtalk_secret'] = data['dingtalk_secret']
         config.save_config(cfg)
-        print(f"[推送] 配置已保存，测试渠道: {channel}")
+        logger.debug(f"配置已保存，测试渠道: {channel}")
         
         from services.pusher import MultiPushClient
         
@@ -513,17 +543,185 @@ def test_push():
         return jsonify({'success': False, 'message': str(e)})
 
 
+# ========== 系统信息 API ==========
+
+@app.route('/api/system/info')
+def get_system_info():
+    """获取系统基本信息"""
+    try:
+        from datetime import datetime
+        import config
+        
+        cfg = config.get_config()
+        
+        return jsonify({
+            'success': True,
+            'info': {
+                'name': 'iHomeGuard',
+                'version': config.get_version(),
+                'description': '爱快家庭网络卫士 - 实时监控家庭网络设备',
+                'github': 'https://github.com/MuskCheng/ihomeguard'
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/system/update/check')
+def check_update():
+    """检查版本更新"""
+    try:
+        from services.updater import check_update as do_check
+        result = do_check()
+        return jsonify({
+            'success': True,
+            **result
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========== 备份恢复 API ==========
+
+@app.route('/api/backup/stats')
+def get_backup_stats():
+    """获取备份统计信息"""
+    try:
+        from services.backup import get_backup_stats
+        stats = get_backup_stats()
+        return jsonify({'success': True, 'stats': stats})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/backup/export', methods=['POST'])
+def export_backup():
+    """导出备份"""
+    try:
+        from services.backup import export_backup as do_export
+        
+        data = request.get_json() or {}
+        include_devices = data.get('include_devices', False)
+        include_alerts = data.get('include_alerts', False)
+        
+        backup_data = do_export(include_devices, include_alerts)
+        
+        return jsonify({
+            'success': True,
+            'data': backup_data,
+            'filename': f"ihomeguard-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/backup/import', methods=['POST'])
+def import_backup():
+    """导入备份"""
+    try:
+        from services.backup import import_backup as do_import
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': '无数据'}), 400
+        
+        backup_data = data.get('backup', {})
+        merge_devices = data.get('merge_devices', True)
+        
+        success, message, stats = do_import(backup_data, merge_devices)
+        
+        if success:
+            # 重新初始化服务
+            global _monitor, _pusher
+            _monitor = None
+            _pusher = None
+        
+        return jsonify({
+            'success': success,
+            'message': message,
+            'stats': stats
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ========== 认证 API ==========
+
+@app.route('/api/auth/status')
+def auth_status():
+    """获取认证状态"""
+    return jsonify({
+        'success': True,
+        'auth_enabled': is_auth_enabled(),
+        'authenticated': getattr(g, 'authenticated', False)
+    })
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    """登录验证 Token"""
+    try:
+        data = request.get_json() or {}
+        token = data.get('token', '')
+        
+        if not token:
+            return jsonify({'success': False, 'error': '请输入 Token'})
+        
+        if check_auth(token):
+            return jsonify({'success': True, 'message': '认证成功'})
+        else:
+            return jsonify({'success': False, 'error': 'Token 无效'})
+    except Exception as e:
+        logger.error(f"登录失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/auth/token', methods=['POST'])
+def generate_auth_token():
+    """生成新 Token（需要已认证）"""
+    try:
+        # 检查是否已认证
+        if not getattr(g, 'authenticated', False):
+            return jsonify({'success': False, 'error': '需要认证'}), 401
+        
+        new_token = generate_token()
+        
+        # 保存到配置
+        cfg = config.get_config()
+        cfg['auth']['token'] = new_token
+        config.save_config(cfg)
+        
+        logger.info("生成新 Token")
+        return jsonify({'success': True, 'token': new_token})
+    except Exception as e:
+        logger.error(f"生成 Token 失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # ========== 初始化 ==========
 
 def init_app():
     """初始化应用"""
+    # 初始化数据库
     storage.init_db()
+    
+    # 初始化认证中间件
+    init_auth_middleware(app)
+    logger.info("认证中间件已初始化")
     
     # 检查配置
     is_valid, missing = config.validate_config()
     if not is_valid:
-        print(f"[警告] 配置不完整，缺少: {', '.join(missing)}")
-        print("[提示] 请在设置页面完成配置")
+        logger.warning(f"配置不完整，缺少: {', '.join(missing)}")
+        logger.info("请在设置页面完成配置")
+    else:
+        logger.info("配置检查通过")
 
 
 if __name__ == '__main__':

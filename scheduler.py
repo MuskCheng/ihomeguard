@@ -8,7 +8,9 @@ import config
 import storage
 from services.monitor import MonitorService
 from services.reporter import ReporterService
+from logger import get_logger
 
+logger = get_logger('scheduler')
 
 scheduler = BackgroundScheduler()
 
@@ -31,10 +33,9 @@ def collect_task():
         monitor = get_monitor_instance()
         result = monitor.collect()
         
-        print(f"[采集] {datetime.now().strftime('%H:%M:%S')} - "
-              f"在线: {result['device_count']}台, "
-              f"上行: {format_bytes(result['total_upload'])}, "
-              f"下行: {format_bytes(result['total_download'])}")
+        logger.info(f"采集 - 在线: {result['device_count']}台, "
+                    f"上行: {format_bytes(result['total_upload'])}, "
+                    f"下行: {format_bytes(result['total_download'])}")
         
         # 保存流量快照用于实时监控
         storage.save_traffic_snapshot(
@@ -52,7 +53,7 @@ def collect_task():
                 reporter.send_alert_now(alert['type'], alert['message'])
                 
     except Exception as e:
-        print(f"[采集错误] {e}")
+        logger.error(f"采集错误: {e}")
 
 
 def keepalive_task():
@@ -61,9 +62,9 @@ def keepalive_task():
         monitor = get_monitor_instance()
         success = monitor.keepalive()
         if success:
-            print(f"[保活] {datetime.now().strftime('%H:%M:%S')} 会话保活成功")
+            logger.debug("会话保活成功")
     except Exception as e:
-        print(f"[保活错误] {e}")
+        logger.error(f"保活错误: {e}")
 
 
 def daily_report_task():
@@ -76,9 +77,9 @@ def daily_report_task():
             # 发送前一天的日报
             yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
             success = reporter.send_report(yesterday)
-            print(f"[日报] {yesterday} 推送{'成功' if success else '失败'}")
+            logger.info(f"日报 {yesterday} 推送{'成功' if success else '失败'}")
     except Exception as e:
-        print(f"[日报错误] {e}")
+        logger.error(f"日报错误: {e}")
 
 
 def daily_stats_task():
@@ -148,9 +149,9 @@ def daily_stats_task():
             max_connections=max_connections,
             peak_device_count=len(unique_devices)
         )
-        print(f"[统计] {today} 数据已保存: 上传 {total_upload/1024/1024:.1f}MB, 下载 {total_download/1024/1024:.1f}MB")
+        logger.info(f"统计 {today} 数据已保存: 上传 {total_upload/1024/1024:.1f}MB, 下载 {total_download/1024/1024:.1f}MB")
     except Exception as e:
-        print(f"[统计错误] {e}")
+        logger.error(f"统计错误: {e}")
 
 
 def init_daily_stats():
@@ -161,7 +162,7 @@ def init_daily_stats():
         # 检查今天是否已有统计数据
         existing = storage.get_daily_stats(today)
         if existing:
-            print(f"[统计初始化] {today} 已有统计数据，跳过")
+            logger.debug(f"统计初始化: {today} 已有统计数据，跳过")
             return
         
         # 获取昨天的统计数据用于计算增量
@@ -225,18 +226,18 @@ def init_daily_stats():
             max_connections=max_connections,
             peak_device_count=len(unique_devices)
         )
-        print(f"[统计初始化] {today} 数据已生成: 上传 {total_upload/1024/1024:.1f}MB, 下载 {total_download/1024/1024:.1f}MB")
+        logger.info(f"统计初始化 {today} 数据已生成: 上传 {total_upload/1024/1024:.1f}MB, 下载 {total_download/1024/1024:.1f}MB")
     except Exception as e:
-        print(f"[统计初始化错误] {e}")
+        logger.error(f"统计初始化错误: {e}")
 
 
 def cleanup_traffic_history_task():
     """清理流量历史数据（保留7天）"""
     try:
         deleted = storage.cleanup_traffic_history(days=7)
-        print(f"[清理] 流量历史数据已清理")
+        logger.info("流量历史数据已清理")
     except Exception as e:
-        print(f"[清理错误] {e}")
+        logger.error(f"清理错误: {e}")
 
 
 def cleanup_all_task():
@@ -254,16 +255,16 @@ def cleanup_all_task():
         
         # 打印清理结果
         total = sum(results.values())
-        print(f"[数据清理] 共删除 {total} 条记录")
+        logger.info(f"数据清理: 共删除 {total} 条记录")
         for table, count in results.items():
             if count > 0:
-                print(f"  - {table}: {count} 条")
+                logger.debug(f"  - {table}: {count} 条")
         
         # 执行 VACUUM 回收空间
         storage.vacuum_database()
         
     except Exception as e:
-        print(f"[数据清理错误] {e}")
+        logger.error(f"数据清理错误: {e}")
 
 
 def format_bytes(bytes_val):
@@ -305,4 +306,4 @@ def start_scheduler():
     init_daily_stats()
     
     scheduler.start()
-    print(f"[调度] 采集间隔: {interval}秒, 保活间隔: {keepalive_interval}秒, 日报时间: {report_time}, 统计间隔: 每小时")
+    logger.info(f"调度器已启动: 采集间隔={interval}秒, 保活间隔={keepalive_interval}秒, 日报时间={report_time}")

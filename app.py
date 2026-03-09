@@ -1,6 +1,7 @@
 """iHomeGuard 主入口"""
 import os
 import sys
+import time
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,6 +13,36 @@ from scheduler import start_scheduler
 from web.routes import app, init_app
 from clients.ikuai_local import IKuaiLocalClient
 from services.pusher import MultiPushClient
+from logger import get_logger
+
+logger = get_logger('app')
+
+# 启动通知防重复标记文件
+STARTUP_MARKER_FILE = os.path.join(os.path.dirname(__file__), 'data', '.startup_sent')
+
+
+def is_startup_notification_sent_recently() -> bool:
+    """检查是否最近已发送过启动通知（60秒内）"""
+    try:
+        if os.path.exists(STARTUP_MARKER_FILE):
+            with open(STARTUP_MARKER_FILE, 'r') as f:
+                last_time = float(f.read().strip())
+                # 60秒内不重复发送
+                if time.time() - last_time < 60:
+                    return True
+    except Exception:
+        pass
+    return False
+
+
+def mark_startup_notification_sent():
+    """标记启动通知已发送"""
+    try:
+        os.makedirs(os.path.dirname(STARTUP_MARKER_FILE), exist_ok=True)
+        with open(STARTUP_MARKER_FILE, 'w') as f:
+            f.write(str(time.time()))
+    except Exception as e:
+        logger.warning(f"无法写入启动标记文件: {e}")
 
 
 def check_ikuai_connection(cfg: dict) -> tuple:
@@ -48,22 +79,28 @@ def check_ikuai_connection(cfg: dict) -> tuple:
         else:
             return False, "登录失败，请检查用户名和密码", ""
     except Exception as e:
+        logger.error(f"爱快连接异常: {e}")
         return False, f"连接异常: {str(e)}", ""
 
 
 def send_startup_notification(cfg: dict, ikuai_connected: bool, ikuai_message: str):
     """发送启动通知"""
+    # 防重复检查：60秒内已发送过则跳过
+    if is_startup_notification_sent_recently():
+        logger.info("启动通知已发送过，跳过重复发送")
+        return
+    
     pushme_cfg = cfg.get('pushme', {})
     monitor_cfg = cfg.get('monitor', {})
     
     # 检查是否启用启动通知（默认启用）
     if not monitor_cfg.get('alert_startup', True):
-        print("[启动] 启动通知已禁用，跳过")
+        logger.debug("启动通知已禁用，跳过")
         return
     
     # 检查推送是否启用
     if not pushme_cfg.get('enabled', True):
-        print("[启动] 推送已禁用，跳过启动通知")
+        logger.debug("推送已禁用，跳过启动通知")
         return
     
     # 检查是否有推送配置
@@ -74,7 +111,7 @@ def send_startup_notification(cfg: dict, ikuai_connected: bool, ikuai_message: s
     )
     
     if not has_push_config:
-        print("[启动] 未配置推送渠道，跳过启动通知")
+        logger.debug("未配置推送渠道，跳过启动通知")
         return
     
     pusher = MultiPushClient(pushme_cfg)
@@ -96,19 +133,21 @@ def send_startup_notification(cfg: dict, ikuai_connected: bool, ikuai_message: s
     
     success, msg = pusher.send_startup_notification(status_info)
     if success:
-        print(f"[启动] 启动通知已发送")
+        # 标记已发送
+        mark_startup_notification_sent()
+        logger.info("启动通知已发送")
     else:
-        print(f"[启动] 启动通知发送失败: {msg}")
+        logger.warning(f"启动通知发送失败: {msg}")
 
 
 def main():
     """主函数"""
-    print("=" * 50)
-    print("🏠 iHomeGuard - 爱快家庭网络卫士")
-    print("=" * 50)
+    logger.info("=" * 50)
+    logger.info("iHomeGuard - 爱快家庭网络卫士")
+    logger.info("=" * 50)
     
     # 初始化数据库
-    print("[启动] 初始化数据库...")
+    logger.info("初始化数据库...")
     storage.init_db()
     
     # 加载配置（首次运行会自动创建默认配置文件）
@@ -116,33 +155,33 @@ def main():
     
     # 确保配置文件存在（首次部署时创建）
     if not os.path.exists(config.CONFIG_PATH):
-        print("[启动] 创建默认配置文件...")
+        logger.info("创建默认配置文件...")
         config.save_config(cfg)
     
     # 重置爱快客户端锁定状态（确保启动时是干净状态）
     IKuaiLocalClient.reset_lock_state()
     
     # 检查爱快连接（如果已配置密码则自动登录）
-    print("[启动] 检查爱快连接...")
+    logger.info("检查爱快连接...")
     ikuai_connected, ikuai_message, router_name = check_ikuai_connection(cfg)
     if ikuai_connected:
-        print(f"[启动] 爱快连接成功 - {ikuai_message}")
+        logger.info(f"爱快连接成功 - {ikuai_message}")
     else:
-        print(f"[启动] 爱快未连接 - {ikuai_message}")
+        logger.info(f"爱快未连接 - {ikuai_message}")
     
     # 发送启动通知
     send_startup_notification(cfg, ikuai_connected, ikuai_message)
     
     # 启动定时任务
-    print("[启动] 启动定时任务...")
+    logger.info("启动定时任务...")
     start_scheduler()
     
     # 启动 Web 服务
     host = cfg['web'].get('host', '0.0.0.0')
     port = cfg['web'].get('port', 8680)
     
-    print(f"[启动] Web 服务: http://{host}:{port}")
-    print("-" * 50)
+    logger.info(f"Web 服务: http://{host}:{port}")
+    logger.info("-" * 50)
     
     init_app()
     app.run(host=host, port=port, debug=False, threaded=True)

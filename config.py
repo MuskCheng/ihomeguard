@@ -7,6 +7,10 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from logger import get_logger
+
+logger = get_logger('config')
+
 # 加密密钥（基于机器特征生成）
 def _get_encryption_key():
     """生成加密密钥"""
@@ -40,7 +44,7 @@ def decrypt_value(value: str) -> str:
         return _encryptor.decrypt(value.encode()).decode()
     except Exception as e:
         # 如果解密失败，可能是未加密的旧数据
-        print(f"[配置] 解密失败: {e}")
+        logger.warning(f"解密失败: {e}")
         return value
 
 # 智能检测运行环境，选择正确的配置路径
@@ -177,6 +181,10 @@ def get_default_config():
         "web": {
             "host": "0.0.0.0",
             "port": 8680
+        },
+        "auth": {
+            "enabled": bool(os.environ.get('AUTH_TOKEN', '')),
+            "token": os.environ.get('AUTH_TOKEN', '')
         }
     }
 
@@ -187,11 +195,11 @@ def save_config(config: dict):
     _config = config
     
     config_dir = os.path.dirname(CONFIG_PATH)
-    print(f"[配置] CONFIG_PATH={CONFIG_PATH}, config_dir={config_dir}", flush=True)
+    logger.debug(f"CONFIG_PATH={CONFIG_PATH}, config_dir={config_dir}")
     
     if config_dir:
         os.makedirs(config_dir, exist_ok=True)
-        print(f"[配置] 创建目录: {config_dir}", flush=True)
+        logger.debug(f"创建目录: {config_dir}")
     
     # 加密敏感字段后保存
     config_to_save = json.loads(json.dumps(config))  # 深拷贝
@@ -205,9 +213,9 @@ def save_config(config: dict):
     try:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
             json.dump(config_to_save, f, indent=2, ensure_ascii=False)
-        print(f"[配置] 保存成功: {CONFIG_PATH}", flush=True)
+        logger.info(f"配置保存成功: {CONFIG_PATH}")
     except Exception as e:
-        print(f"[配置] 保存失败: {e}", flush=True)
+        logger.error(f"配置保存失败: {e}")
         raise
 
 

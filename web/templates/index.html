@@ -1013,6 +1013,311 @@
             width: 100%;
         }
         
+        /* ========== 关于区块样式 ========== */
+        .about-info {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .about-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .about-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .about-value {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .changelog-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .changelog-item {
+            background: var(--input-bg);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .changelog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .changelog-version {
+            font-weight: 600;
+            color: var(--accent-cyan);
+            font-size: 0.95rem;
+        }
+        
+        .changelog-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .changelog-body {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* ========== 备份区块样式 ========== */
+        .backup-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .backup-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .backup-stat-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        
+        .backup-stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .backup-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .backup-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--input-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .backup-option:hover {
+            border-color: var(--border-hover);
+            background: var(--input-focus-bg);
+        }
+        
+        .backup-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+            accent-color: var(--accent-cyan);
+            cursor: pointer;
+        }
+        
+        .option-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        
+        .option-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        
+        .backup-status {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .backup-status.status-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .backup-status.status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        /* 导入对话框 */
+        .import-dialog-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .import-dialog {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .import-dialog h4 {
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        
+        .import-preview {
+            background: var(--input-bg);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        
+        .preview-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .preview-item:last-child {
+            border-bottom: none;
+        }
+        
+        .preview-icon {
+            font-size: 1.1rem;
+        }
+        
+        .preview-text {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+        
+        .preview-status {
+            font-size: 0.8rem;
+            color: var(--accent-green);
+        }
+        
+        .import-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        /* ========== 登录弹窗样式 ========== */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .login-dialog {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 380px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        
+        .login-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .login-header h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0 0 24px 0;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .login-input {
+            text-align: center;
+            font-size: 1.1rem;
+            padding: 14px 20px;
+        }
+        
+        .login-btn {
+            padding: 14px;
+            font-size: 1rem;
+        }
+        
+        .login-error {
+            color: var(--accent-red);
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .about-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .about-value {
+                font-size: 0.85rem;
+            }
+            .changelog-item {
+                padding: 12px;
+            }
+        }
+        
         @media (min-width: 769px) {
             .alert-cards { display: none; }
         }
@@ -1416,6 +1721,33 @@
 </head>
 <body>
     <div id="app">
+        <!-- 登录弹窗 -->
+        <div v-if="authRequired && !authenticated" class="login-overlay">
+            <div class="login-dialog">
+                <div class="login-header">
+                    <img src="/static/iHG.png" alt="iHG" class="login-logo">
+                    <h2>iHomeGuard</h2>
+                    <p>请输入访问 Token</p>
+                </div>
+                <div class="login-form">
+                    <input type="password" 
+                           class="form-control login-input" 
+                           v-model="loginToken" 
+                           placeholder="输入 Token"
+                           @keyup.enter="doLogin"
+                           autofocus>
+                    <button class="btn btn-primary login-btn" @click="doLogin" :disabled="loggingIn">
+                        <span v-if="loggingIn" class="spinning">⏳</span>
+                        <span v-else>登录</span>
+                    </button>
+                    <div v-if="loginError" class="login-error">{{ loginError }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容（需要认证时隐藏） -->
+        <template v-if="!authRequired || authenticated">
+        
         <!-- 移动端遮罩层 -->
         <div class="mobile-overlay" :class="{show: mobileMenuOpen}" @click="closeMobileMenu"></div>
         
@@ -1958,11 +2290,151 @@
                             </small>
                         </div>
                         
+                        <!-- 备份与恢复 -->
+                        <div class="settings-section">
+                            <h3>💾 备份与恢复</h3>
+                            <div class="backup-stats" v-if="backupStats">
+                                <div class="backup-stat-item">
+                                    <span class="backup-stat-label">已配置设备</span>
+                                    <span class="backup-stat-value">{{ backupStats.devices_with_settings }} / {{ backupStats.devices_total }}</span>
+                                </div>
+                                <div class="backup-stat-item">
+                                    <span class="backup-stat-label">未处理告警</span>
+                                    <span class="backup-stat-value">{{ backupStats.unresolved_alerts }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 导出选项 -->
+                            <div class="backup-options">
+                                <label class="backup-option">
+                                    <input type="checkbox" v-model="exportOptions.includeDevices">
+                                    <span class="option-checkmark"></span>
+                                    <span class="option-label">包含设备设置</span>
+                                    <span class="option-desc">设备别名、信任标记</span>
+                                </label>
+                                <label class="backup-option">
+                                    <input type="checkbox" v-model="exportOptions.includeAlerts">
+                                    <span class="option-checkmark"></span>
+                                    <span class="option-label">包含未处理告警</span>
+                                    <span class="option-desc">{{ backupStats?.unresolved_alerts || 0 }} 条告警</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-actions" style="margin-top: 15px;">
+                                <button class="btn btn-primary" @click="exportBackup" :disabled="exporting">
+                                    <span v-if="exporting" class="spinning">⏳</span>
+                                    <span v-else>📤 导出备份</span>
+                                </button>
+                                <button class="btn" style="background: var(--input-bg); border: 1px solid var(--border-color);" @click="triggerImport" :disabled="importing">
+                                    <span v-if="importing" class="spinning">⏳</span>
+                                    <span v-else>📥 导入备份</span>
+                                </button>
+                                <input type="file" ref="importFileInput" @change="handleImport" accept=".json" style="display: none;">
+                            </div>
+                            
+                            <!-- 导入选项弹窗 -->
+                            <div v-if="showImportDialog" class="import-dialog-overlay" @click.self="showImportDialog = false">
+                                <div class="import-dialog">
+                                    <h4>导入备份</h4>
+                                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 10px 0;">
+                                        检测到备份文件：<strong>{{ pendingImport.filename }}</strong>
+                                    </p>
+                                    <div class="import-preview">
+                                        <div class="preview-item">
+                                            <span class="preview-icon">⚙️</span>
+                                            <span class="preview-text">配置文件</span>
+                                            <span class="preview-status">✓ 将更新</span>
+                                        </div>
+                                        <div class="preview-item" v-if="pendingImport.hasDevices">
+                                            <span class="preview-icon">📱</span>
+                                            <span class="preview-text">{{ pendingImport.deviceCount }} 个设备设置</span>
+                                            <span class="preview-status">✓ 将导入</span>
+                                        </div>
+                                        <div class="preview-item" v-if="pendingImport.hasAlerts">
+                                            <span class="preview-icon">🔔</span>
+                                            <span class="preview-text">{{ pendingImport.alertCount }} 条告警</span>
+                                            <span class="preview-status">✓ 将导入</span>
+                                        </div>
+                                    </div>
+                                    <label class="backup-option" style="margin-top: 15px;">
+                                        <input type="checkbox" v-model="importMergeMode">
+                                        <span class="option-checkmark"></span>
+                                        <span class="option-label">合并设备设置</span>
+                                        <span class="option-desc">保留本地已有的设备别名</span>
+                                    </label>
+                                    <div class="import-actions">
+                                        <button class="btn" style="background: var(--input-bg); border: 1px solid var(--border-color);" @click="showImportDialog = false">取消</button>
+                                        <button class="btn btn-primary" @click="confirmImport">确认导入</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <transition name="fade">
+                                <div v-if="backupStatus" class="backup-status" :class="backupStatus.success ? 'status-success' : 'status-error'">
+                                    <span v-if="backupStatus.success">✅</span>
+                                    <span v-else>❌</span>
+                                    {{ backupStatus.message }}
+                                </div>
+                            </transition>
+                            
+                            <small style="color: var(--text-muted); display: block; margin-top: 10px;">
+                                提示：密码不在备份范围内，导入后需重新输入爱快密码
+                            </small>
+                        </div>
+                        
+                        <!-- 关于 -->
+                        <div class="settings-section">
+                            <h3>ℹ️ 关于</h3>
+                            <div class="about-info">
+                                <div class="about-item">
+                                    <span class="about-label">软件名称</span>
+                                    <span class="about-value">iHomeGuard 爱快家庭网络卫士</span>
+                                </div>
+                                <div class="about-item">
+                                    <span class="about-label">当前版本</span>
+                                    <span class="about-value">
+                                        v{{ systemInfo.version || '...' }}
+                                        <span v-if="updateInfo.has_update" class="badge badge-warning" style="margin-left: 8px;">有新版本</span>
+                                    </span>
+                                </div>
+                                <div v-if="updateInfo.has_update" class="about-item">
+                                    <span class="about-label">最新版本</span>
+                                    <span class="about-value" style="color: var(--accent-green);">{{ updateInfo.latest_version }}</span>
+                                </div>
+                            </div>
+                            <div class="form-actions" style="margin-top: 15px;">
+                                <button class="btn btn-primary" @click="checkForUpdate" :disabled="checkingUpdate">
+                                    <span v-if="checkingUpdate" class="spinning">⏳</span>
+                                    <span v-else>🔍 检查更新</span>
+                                </button>
+                                <a href="https://github.com/MuskCheng/ihomeguard" target="_blank" class="btn" style="background: var(--input-bg); border: 1px solid var(--border-color); text-decoration: none;">
+                                    📦 GitHub
+                                </a>
+                            </div>
+                            <div v-if="updateInfo.error" class="update-error" style="margin-top: 10px; color: var(--accent-orange); font-size: 0.85rem;">
+                                {{ updateInfo.error }}
+                            </div>
+                            <!-- 更新日志 -->
+                            <div v-if="updateInfo.releases && updateInfo.releases.length > 0" class="changelog-section" style="margin-top: 20px;">
+                                <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">📝 最近更新</h4>
+                                <div class="changelog-list">
+                                    <div v-for="release in updateInfo.releases" :key="release.version" class="changelog-item">
+                                        <div class="changelog-header">
+                                            <span class="changelog-version">{{ release.version }}</span>
+                                            <span class="changelog-date">{{ formatDate(release.published_at) }}</span>
+                                        </div>
+                                        <div class="changelog-body" v-html="formatChangelog(release.body)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <button class="btn btn-success" @click="saveSettings">💾 保存设置</button>
                     </div>
                 </div>
             </div>
         </main>
+        </template>
     </div>
     
     <script>
@@ -1996,7 +2468,25 @@
                     currentConnections: 0,
                     isDarkMode: true,
                     dbStats: null,
-                    cleaningDb: false
+                    cleaningDb: false,
+                    systemInfo: { version: '' },
+                    updateInfo: { has_update: false, releases: [], error: '' },
+                    checkingUpdate: false,
+                    // 备份相关
+                    backupStats: null,
+                    exportOptions: { includeDevices: true, includeAlerts: false },
+                    exporting: false,
+                    importing: false,
+                    backupStatus: null,
+                    showImportDialog: false,
+                    pendingImport: null,
+                    importMergeMode: true,
+                    // 认证相关
+                    authRequired: false,
+                    authenticated: false,
+                    loginToken: '',
+                    loggingIn: false,
+                    loginError: ''
                 };
             },
             computed: {
@@ -2023,6 +2513,62 @@
                 }
             },
             methods: {
+                // ========== 认证相关 ==========
+                async checkAuthStatus() {
+                    try {
+                        const res = await axios.get('/api/auth/status');
+                        this.authRequired = res.data.auth_enabled;
+                        this.authenticated = res.data.authenticated;
+                        
+                        if (!this.authRequired || this.authenticated) {
+                            this.loadInitialData();
+                        }
+                    } catch (e) {
+                        console.error('检查认证状态失败:', e);
+                        this.authRequired = false;
+                        this.loadInitialData();
+                    }
+                },
+                async doLogin() {
+                    if (!this.loginToken) {
+                        this.loginError = '请输入 Token';
+                        return;
+                    }
+                    this.loggingIn = true;
+                    this.loginError = '';
+                    try {
+                        const res = await axios.post('/api/auth/login', { token: this.loginToken });
+                        if (res.data.success) {
+                            this.authenticated = true;
+                            localStorage.setItem('auth_token', this.loginToken);
+                            axios.defaults.headers.common['Authorization'] = 'Bearer ' + this.loginToken;
+                            this.loadInitialData();
+                        } else {
+                            this.loginError = res.data.error || 'Token 无效';
+                        }
+                    } catch (e) {
+                        this.loginError = '登录失败: ' + (e.response?.data?.error || e.message);
+                    } finally {
+                        this.loggingIn = false;
+                    }
+                },
+                loadInitialData() {
+                    Promise.all([
+                        this.refreshDevices(),
+                        this.refreshAlerts(),
+                        this.loadConfig(),
+                        this.loadSystemInfo()
+                    ]).then(() => {
+                        setTimeout(() => this.preloadStatsData(), 2000);
+                        this.checkForUpdate();
+                    }).catch(e => console.error('数据加载失败:', e));
+                    
+                    setInterval(() => { this.refreshDevices(); }, 5000);
+                    setInterval(() => { if (this.currentPage === 'stats') this.loadTrafficHistory(); }, 5000);
+                    setInterval(() => { if (this.currentPage === 'stats') { this.loadPrediction(); this.loadStats(); } }, 30000);
+                    setInterval(() => { if (this.currentPage === 'alerts') this.refreshAlerts(); }, 10000);
+                },
+                // ========== 原有方法 ==========
                 toggleMobileMenu() {
                     this.mobileMenuOpen = !this.mobileMenuOpen;
                     document.body.style.overflow = this.mobileMenuOpen ? 'hidden' : '';
@@ -2198,6 +2744,156 @@
                         alert('清理失败: ' + e.message);
                     } finally {
                         this.cleaningDb = false;
+                    }
+                },
+                async loadSystemInfo() {
+                    try {
+                        const res = await axios.get('/api/system/info');
+                        if (res.data.success) {
+                            this.systemInfo = res.data.info;
+                        }
+                    } catch (e) {
+                        console.error('获取系统信息失败:', e);
+                    }
+                },
+                async checkForUpdate() {
+                    this.checkingUpdate = true;
+                    this.updateInfo = { has_update: false, releases: [], error: '' };
+                    try {
+                        const res = await axios.get('/api/system/update/check');
+                        if (res.data.success) {
+                            this.updateInfo = {
+                                current_version: res.data.current_version,
+                                latest_version: res.data.latest_version,
+                                has_update: res.data.has_update,
+                                releases: res.data.releases || [],
+                                error: res.data.error || ''
+                            };
+                            // 同步更新 systemInfo
+                            this.systemInfo.version = res.data.current_version;
+                        }
+                    } catch (e) {
+                        this.updateInfo.error = '检查更新失败: ' + e.message;
+                    } finally {
+                        this.checkingUpdate = false;
+                    }
+                },
+                formatDate(dateStr) {
+                    if (!dateStr) return '';
+                    const d = new Date(dateStr);
+                    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                },
+                formatChangelog(body) {
+                    if (!body) return '';
+                    // 简单的 markdown 转 HTML
+                    return body
+                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>')
+                        .replace(/#{1,3}\s*/g, '');
+                },
+                async loadBackupStats() {
+                    try {
+                        const res = await axios.get('/api/backup/stats');
+                        if (res.data.success) {
+                            this.backupStats = res.data.stats;
+                        }
+                    } catch (e) {
+                        console.error('获取备份统计失败:', e);
+                    }
+                },
+                async exportBackup() {
+                    this.exporting = true;
+                    this.backupStatus = null;
+                    try {
+                        const res = await axios.post('/api/backup/export', this.exportOptions);
+                        if (res.data.success) {
+                            // 创建下载
+                            const dataStr = JSON.stringify(res.data.data, null, 2);
+                            const blob = new Blob([dataStr], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = res.data.filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            this.backupStatus = { success: true, message: '备份文件已下载' };
+                        } else {
+                            this.backupStatus = { success: false, message: res.data.error };
+                        }
+                    } catch (e) {
+                        this.backupStatus = { success: false, message: '导出失败: ' + e.message };
+                    } finally {
+                        this.exporting = false;
+                    }
+                },
+                triggerImport() {
+                    this.$refs.importFileInput.click();
+                },
+                async handleImport(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    // 重置 input 以便再次选择同一文件
+                    event.target.value = '';
+                    
+                    try {
+                        const text = await file.text();
+                        const data = JSON.parse(text);
+                        
+                        // 验证格式
+                        if (!data.version || !data.config) {
+                            this.backupStatus = { success: false, message: '无效的备份文件格式' };
+                            return;
+                        }
+                        
+                        // 显示预览
+                        this.pendingImport = {
+                            filename: file.name,
+                            data: data,
+                            hasDevices: !!data.devices,
+                            deviceCount: data.devices ? data.devices.length : 0,
+                            hasAlerts: !!data.alerts,
+                            alertCount: data.alerts ? data.alerts.length : 0
+                        };
+                        this.showImportDialog = true;
+                        this.backupStatus = null;
+                    } catch (e) {
+                        this.backupStatus = { success: false, message: '解析文件失败: ' + e.message };
+                    }
+                },
+                async confirmImport() {
+                    if (!this.pendingImport) return;
+                    
+                    this.importing = true;
+                    this.showImportDialog = false;
+                    
+                    try {
+                        const res = await axios.post('/api/backup/import', {
+                            backup: this.pendingImport.data,
+                            merge_devices: this.importMergeMode
+                        });
+                        
+                        if (res.data.success) {
+                            const stats = res.data.stats;
+                            let msg = '导入成功';
+                            if (stats.config_updated) msg += '，配置已更新';
+                            if (stats.devices_imported > 0) msg += `，${stats.devices_imported} 个设备`;
+                            if (stats.alerts_imported > 0) msg += `，${stats.alerts_imported} 条告警`;
+                            this.backupStatus = { success: true, message: msg };
+                            
+                            // 刷新配置
+                            await this.loadConfig();
+                            await this.loadBackupStats();
+                        } else {
+                            this.backupStatus = { success: false, message: res.data.message };
+                        }
+                    } catch (e) {
+                        this.backupStatus = { success: false, message: '导入失败: ' + e.message };
+                    } finally {
+                        this.importing = false;
+                        this.pendingImport = null;
                     }
                 },
                 async testIkuai() {
@@ -2753,48 +3449,13 @@
                     }
                     if (newPage === 'settings') {
                         this.loadDbStats();
+                        this.loadBackupStats();
                     }
                 }
             },
             mounted() {
                 this.loadTheme();
-                // 并行加载所有数据，提升页面加载速度
-                Promise.all([
-                    this.refreshDevices(),
-                    this.refreshAlerts(),
-                    this.loadConfig()
-                ]).then(() => {
-                    // 首页数据加载完成后，后台预加载统计页数据
-                    setTimeout(() => this.preloadStatsData(), 2000);
-                }).catch(e => console.error('数据加载失败:', e));
-                // 不在 mounted 时初始化图表，因为统计页面是 display:none
-                
-                // 设备刷新间隔 (5秒)
-                setInterval(() => {
-                    this.refreshDevices();
-                }, 5000);
-                
-                // 流量历史刷新间隔 - 根据区间动态调整，短区间更频繁
-                setInterval(() => {
-                    if (this.currentPage === 'stats') {
-                        this.loadTrafficHistory();
-                    }
-                }, 5000);  // 5秒刷新
-                
-                // 统计数据刷新间隔（预测、周统计）
-                setInterval(() => {
-                    if (this.currentPage === 'stats') {
-                        this.loadPrediction();
-                        this.loadStats();
-                    }
-                }, 30000);  // 30秒刷新统计汇总
-                
-                // 告警刷新间隔
-                setInterval(() => {
-                    if (this.currentPage === 'alerts') {
-                        this.refreshAlerts();
-                    }
-                }, 10000);  // 10秒刷新告警
+                this.checkAuthStatus();
             }
         }).mount('#app');
     </script>
