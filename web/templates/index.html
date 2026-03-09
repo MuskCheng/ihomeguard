@@ -2193,9 +2193,9 @@
                         <span>系统设置</span>
                     </div>
                     <div class="card-body">
-                        <!-- 爱快路由器设置 -->
+                        <!-- 1. 连接配置 -->
                         <div class="settings-section">
-                            <h3>📡 爱快路由器</h3>
+                            <h3>🔌 连接配置</h3>
                             <div class="security-tip">
                                 <strong>🔒 安全建议：</strong>请勿使用管理员账户！建议创建<strong>只读账户</strong>用于数据采集。
                             </div>
@@ -2209,20 +2209,13 @@
                                     <input type="text" class="form-control" v-model="config.ikuai.username" placeholder="只读账户用户名">
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>密码</label>
-                                    <input type="password" class="form-control" v-model="config.ikuai.password" :placeholder="config.ikuai.password === '****' ? '密码已保存，输入新密码可修改' : '输入只读账户密码'">
-                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">
-                                        <span v-if="config.ikuai.password === '****'">✅ 密码已加密保存</span>
-                                        <span v-else>密码将被加密存储</span>
-                                    </small>
-                                </div>
-                                <div class="form-group">
-                                    <label>会话超时时间（分钟）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.session_timeout" min="10" max="1440" style="max-width: 150px;">
-                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">系统将自动保活会话</small>
-                                </div>
+                            <div class="form-group">
+                                <label>密码</label>
+                                <input type="password" class="form-control" v-model="config.ikuai.password" :placeholder="config.ikuai.password === '****' ? '密码已保存，输入新密码可修改' : '输入只读账户密码'">
+                                <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+                                    <span v-if="config.ikuai.password === '****'">✅ 密码已加密保存</span>
+                                    <span v-else>密码将被加密存储</span>
+                                </small>
                             </div>
                             <div class="form-actions">
                                 <button class="btn btn-primary" @click="testIkuai" :disabled="testingIkuai">
@@ -2239,7 +2232,7 @@
                             </div>
                         </div>
                         
-                        <!-- 推送设置 -->
+                        <!-- 2. 消息推送 -->
                         <div class="settings-section">
                             <h3>🔔 消息推送</h3>
                             <div class="form-group">
@@ -2297,292 +2290,320 @@
                             </div>
                         </div>
                         
-                        <!-- 监控设置 -->
+                        <!-- 3. 监控策略 -->
                         <div class="settings-section">
-                            <h3>⚙️ 监控设置</h3>
+                            <h3>📊 监控策略</h3>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>采集间隔（秒）</label>
                                     <input type="number" class="form-control" v-model="config.monitor.collect_interval">
                                 </div>
                                 <div class="form-group">
-                                    <label>日报推送时间（次日）</label>
+                                    <label>会话超时（分钟）</label>
+                                    <input type="number" class="form-control" v-model="config.monitor.session_timeout" min="10" max="1440">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">系统将自动保活会话</small>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>日报推送时间</label>
                                     <select class="form-control" v-model="config.monitor.report_time" style="max-width: 200px;">
                                         <option v-for="h in 23" :key="h" :value="(h).toString().padStart(2, '0') + ':00'">{{ h }}:00</option>
                                     </select>
-                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">推送前一天的完整网络数据</small>
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">次日推送前一天数据</small>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>流量告警阈值（GB）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.traffic_threshold_gb">
-                                </div>
-                                <div class="form-group">
-                                    <label>长在线告警阈值（小时）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.long_online_hours">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>上传速度告警阈值（KB/s）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.upload_speed_threshold_kbps" placeholder="默认10240（10MB/s）">
-                                </div>
-                                <div class="form-group">
-                                    <label>下载速度告警阈值（KB/s）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.download_speed_threshold_kbps" placeholder="默认51200（50MB/s）">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>单设备连接数告警阈值</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.high_connection_threshold" placeholder="默认500">
-                                </div>
-                                <div class="form-group">
-                                    <label>总连接数告警阈值</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.total_connection_threshold" placeholder="默认1000">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label><input type="checkbox" v-model="config.monitor.alert_new_device"> 新设备接入告警</label>
-                            </div>
-                            <div class="form-group">
-                                <label><input type="checkbox" v-model="config.monitor.alert_offline"> 重要设备离线告警</label>
                             </div>
                         </div>
                         
-                        <!-- 数据库维护 -->
+                        <!-- 4. 告警规则 -->
                         <div class="settings-section">
-                            <h3>🗄️ 数据库维护</h3>
-                            <div class="db-stats" v-if="dbStats">
-                                <div class="db-stat-item">
-                                    <span class="db-stat-label">数据库大小</span>
-                                    <span class="db-stat-value">{{ dbStats.db_size_mb }} MB</span>
-                                </div>
-                                <div class="db-stat-item">
-                                    <span class="db-stat-label">在线记录</span>
-                                    <span class="db-stat-value">{{ dbStats.online_records }} 条</span>
-                                </div>
-                                <div class="db-stat-item">
-                                    <span class="db-stat-label">流量历史</span>
-                                    <span class="db-stat-value">{{ dbStats.traffic_history }} 条</span>
-                                </div>
-                                <div class="db-stat-item">
-                                    <span class="db-stat-label">设备事件</span>
-                                    <span class="db-stat-value">{{ dbStats.device_events }} 条</span>
-                                </div>
-                                <div class="db-stat-item">
-                                    <span class="db-stat-label">告警记录</span>
-                                    <span class="db-stat-value">{{ dbStats.alerts }} 条</span>
-                                </div>
-                                <div class="db-stat-item">
-                                    <span class="db-stat-label">每日统计</span>
-                                    <span class="db-stat-value">{{ dbStats.daily_stats }} 条</span>
-                                </div>
-                            </div>
-                            <div class="form-actions" style="margin-top: 15px;">
-                                <button class="btn btn-primary" @click="loadDbStats">🔄 刷新统计</button>
-                                <button class="btn btn-warning" @click="cleanupDatabase" :disabled="cleaningDb">
-                                    <span v-if="cleaningDb" class="spinning">⏳</span>
-                                    <span v-else>🧹 清理数据</span>
-                                </button>
-                            </div>
-                            <small style="color: var(--text-muted); display: block; margin-top: 10px;">
-                                自动清理策略：在线记录/流量历史保留7天，事件/会话/告警保留30天，每日统计保留365天
-                            </small>
-                        </div>
-                        
-                        <!-- 备份与恢复 -->
-                        <div class="settings-section">
-                            <h3>💾 备份与恢复</h3>
-                            <div class="backup-stats" v-if="backupStats">
-                                <div class="backup-stat-item">
-                                    <span class="backup-stat-label">已配置设备</span>
-                                    <span class="backup-stat-value">{{ backupStats.devices_with_settings }} / {{ backupStats.devices_total }}</span>
-                                </div>
-                                <div class="backup-stat-item">
-                                    <span class="backup-stat-label">未处理告警</span>
-                                    <span class="backup-stat-value">{{ backupStats.unresolved_alerts }}</span>
-                                </div>
-                            </div>
+                            <h3>⚠️ 告警规则</h3>
                             
-                            <!-- 导出选项 -->
-                            <div class="backup-options">
-                                <label class="backup-option">
-                                    <input type="checkbox" v-model="exportOptions.includeDevices">
-                                    <span class="option-checkmark"></span>
-                                    <span class="option-label">包含设备设置</span>
-                                    <span class="option-desc">设备别名、信任标记</span>
-                                </label>
-                                <label class="backup-option">
-                                    <input type="checkbox" v-model="exportOptions.includeAlerts">
-                                    <span class="option-checkmark"></span>
-                                    <span class="option-label">包含未处理告警</span>
-                                    <span class="option-desc">{{ backupStats?.unresolved_alerts || 0 }} 条告警</span>
-                                </label>
-                            </div>
-                            
-                            <div class="form-actions" style="margin-top: 15px;">
-                                <button class="btn btn-primary" @click="exportBackup" :disabled="exporting">
-                                    <span v-if="exporting" class="spinning">⏳</span>
-                                    <span v-else>📤 导出备份</span>
-                                </button>
-                                <button class="btn" style="background: var(--input-bg); border: 1px solid var(--border-color);" @click="triggerImport" :disabled="importing">
-                                    <span v-if="importing" class="spinning">⏳</span>
-                                    <span v-else>📥 导入备份</span>
-                                </button>
-                                <input type="file" ref="importFileInput" @change="handleImport" accept=".json" style="display: none;">
-                            </div>
-                            
-                            <!-- 导入选项弹窗 -->
-                            <div v-if="showImportDialog" class="import-dialog-overlay" @click.self="showImportDialog = false">
-                                <div class="import-dialog">
-                                    <h4>导入备份</h4>
-                                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 10px 0;">
-                                        检测到备份文件：<strong>{{ pendingImport.filename }}</strong>
-                                    </p>
-                                    <div class="import-preview">
-                                        <div class="preview-item">
-                                            <span class="preview-icon">⚙️</span>
-                                            <span class="preview-text">配置文件</span>
-                                            <span class="preview-status">✓ 将更新</span>
-                                        </div>
-                                        <div class="preview-item" v-if="pendingImport.hasDevices">
-                                            <span class="preview-icon">📱</span>
-                                            <span class="preview-text">{{ pendingImport.deviceCount }} 个设备设置</span>
-                                            <span class="preview-status">✓ 将导入</span>
-                                        </div>
-                                        <div class="preview-item" v-if="pendingImport.hasAlerts">
-                                            <span class="preview-icon">🔔</span>
-                                            <span class="preview-text">{{ pendingImport.alertCount }} 条告警</span>
-                                            <span class="preview-status">✓ 将导入</span>
-                                        </div>
-                                    </div>
-                                    <label class="backup-option" style="margin-top: 15px;">
-                                        <input type="checkbox" v-model="importMergeMode">
-                                        <span class="option-checkmark"></span>
-                                        <span class="option-label">合并设备设置</span>
-                                        <span class="option-desc">保留本地已有的设备别名</span>
-                                    </label>
-                                    <div class="import-actions">
-                                        <button class="btn" style="background: var(--input-bg); border: 1px solid var(--border-color);" @click="showImportDialog = false">取消</button>
-                                        <button class="btn btn-primary" @click="confirmImport">确认导入</button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <transition name="fade">
-                                <div v-if="backupStatus" class="backup-status" :class="backupStatus.success ? 'status-success' : 'status-error'">
-                                    <span v-if="backupStatus.success">✅</span>
-                                    <span v-else>❌</span>
-                                    {{ backupStatus.message }}
-                                </div>
-                            </transition>
-                            
-                            <small style="color: var(--text-muted); display: block; margin-top: 10px;">
-                                提示：密码不在备份范围内，导入后需重新输入爱快密码
-                            </small>
-                        </div>
-
-                        <!-- 账户管理 -->
-                        <div class="settings-section" v-if="authenticated">
-                            <h3>👤 账户管理</h3>
-
-                            <!-- 当前用户信息 -->
-                            <div class="about-item" style="margin-bottom: 16px;">
-                                <span class="about-label">当前登录</span>
-                                <span class="about-value" style="color: var(--accent-cyan);">{{ currentUsername || '未知' }}</span>
-                            </div>
-
-                            <!-- 修改密码 -->
+                            <!-- 流量告警 -->
                             <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
-                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">修改密码</h4>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <input type="password" class="form-control" v-model="changePasswordOld"
-                                           placeholder="原密码" style="font-size: 0.9rem;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">流量告警</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>日流量阈值（GB）</label>
+                                        <input type="number" class="form-control" v-model="config.monitor.traffic_threshold_gb">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>长在线阈值（小时）</label>
+                                        <input type="number" class="form-control" v-model="config.monitor.long_online_hours">
+                                    </div>
                                 </div>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <input type="password" class="form-control" v-model="changePasswordNew"
-                                           placeholder="新密码（至少6位）" style="font-size: 0.9rem;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <input type="password" class="form-control" v-model="changePasswordConfirm"
-                                           placeholder="再次输入新密码" style="font-size: 0.9rem;">
-                                </div>
-                                <button class="btn btn-primary btn-sm" @click="doChangePassword" :disabled="changingPassword">
-                                    <span v-if="changingPassword" class="spinning">⏳</span>
-                                    <span v-else>修改密码</span>
-                                </button>
-                                <div v-if="changePasswordError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 8px;">
-                                    {{ changePasswordError }}
-                                </div>
-                                <div v-if="changePasswordSuccess" style="color: var(--accent-green); font-size: 0.8rem; margin-top: 8px;">
-                                    {{ changePasswordSuccess }}
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>上传速度阈值（KB/s）</label>
+                                        <input type="number" class="form-control" v-model="config.monitor.upload_speed_threshold_kbps" placeholder="默认10240">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>下载速度阈值（KB/s）</label>
+                                        <input type="number" class="form-control" v-model="config.monitor.download_speed_threshold_kbps" placeholder="默认51200">
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- 用户列表（管理员可见） -->
-                            <div v-if="currentUserRole === 'admin'" style="background: var(--input-bg); border-radius: 12px; padding: 16px;">
-                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">用户列表</h4>
-                                <div v-for="user in userList" :key="user.username"
-                                     style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
-                                    <div>
-                                        <span style="font-weight: 500;">{{ user.username }}</span>
-                                        <span class="badge" :class="user.role === 'admin' ? 'badge-trusted' : 'badge-info'" style="margin-left: 8px;">
-                                            {{ user.role === 'admin' ? '管理员' : '用户' }}
-                                        </span>
-                                        <span v-if="user.username === currentUsername" class="badge badge-success" style="margin-left: 4px;">当前</span>
+                            
+                            <!-- 连接数告警 -->
+                            <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">连接数告警</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>单设备连接数阈值</label>
+                                        <input type="number" class="form-control" v-model="config.monitor.high_connection_threshold" placeholder="默认500">
                                     </div>
-                                    <button v-if="user.username !== currentUsername"
-                                            class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-red); padding: 4px 10px;"
-                                            @click="confirmDeleteUser(user.username)">
-                                        删除
+                                    <div class="form-group">
+                                        <label>总连接数阈值</label>
+                                        <input type="number" class="form-control" v-model="config.monitor.total_connection_threshold" placeholder="默认1000">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 设备告警 -->
+                            <div style="background: var(--input-bg); border-radius: 12px; padding: 16px;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">设备告警</h4>
+                                <div class="form-group" style="margin-bottom: 8px;">
+                                    <label><input type="checkbox" v-model="config.monitor.alert_new_device"> 新设备接入告警</label>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label><input type="checkbox" v-model="config.monitor.alert_offline"> 信任设备离线告警</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 5. 数据管理 -->
+                        <div class="settings-section">
+                            <h3>🗄️ 数据管理</h3>
+                            
+                            <!-- 数据库状态 -->
+                            <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">数据库状态</h4>
+                                <div class="db-stats" v-if="dbStats">
+                                    <div class="db-stat-item">
+                                        <span class="db-stat-label">数据库大小</span>
+                                        <span class="db-stat-value">{{ dbStats.db_size_mb }} MB</span>
+                                    </div>
+                                    <div class="db-stat-item">
+                                        <span class="db-stat-label">在线记录</span>
+                                        <span class="db-stat-value">{{ dbStats.online_records }} 条</span>
+                                    </div>
+                                    <div class="db-stat-item">
+                                        <span class="db-stat-label">流量历史</span>
+                                        <span class="db-stat-value">{{ dbStats.traffic_history }} 条</span>
+                                    </div>
+                                    <div class="db-stat-item">
+                                        <span class="db-stat-label">设备事件</span>
+                                        <span class="db-stat-value">{{ dbStats.device_events }} 条</span>
+                                    </div>
+                                    <div class="db-stat-item">
+                                        <span class="db-stat-label">告警记录</span>
+                                        <span class="db-stat-value">{{ dbStats.alerts }} 条</span>
+                                    </div>
+                                    <div class="db-stat-item">
+                                        <span class="db-stat-label">每日统计</span>
+                                        <span class="db-stat-value">{{ dbStats.daily_stats }} 条</span>
+                                    </div>
+                                </div>
+                                <div class="form-actions" style="margin-top: 12px;">
+                                    <button class="btn btn-sm" @click="loadDbStats">🔄 刷新</button>
+                                    <button class="btn btn-sm btn-warning" @click="cleanupDatabase" :disabled="cleaningDb">
+                                        <span v-if="cleaningDb" class="spinning">⏳</span>
+                                        <span v-else>🧹 清理</span>
                                     </button>
                                 </div>
+                                <small style="color: var(--text-muted); display: block; margin-top: 8px; font-size: 0.8rem;">
+                                    自动清理：在线记录7天，事件/告警30天，统计365天
+                                </small>
+                            </div>
+                            
+                            <!-- 备份恢复 -->
+                            <div style="background: var(--input-bg); border-radius: 12px; padding: 16px;">
+                                <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">备份与恢复</h4>
+                                <div class="backup-stats" v-if="backupStats" style="margin-bottom: 12px;">
+                                    <span style="color: var(--text-muted); font-size: 0.85rem;">
+                                        已配置设备 {{ backupStats.devices_with_settings }}/{{ backupStats.devices_total }} · 
+                                        未处理告警 {{ backupStats.unresolved_alerts }} 条
+                                    </span>
+                                </div>
+                                
+                                <!-- 导出选项 -->
+                                <div class="backup-options" style="margin-bottom: 12px;">
+                                    <label class="backup-option">
+                                        <input type="checkbox" v-model="exportOptions.includeDevices">
+                                        <span class="option-checkmark"></span>
+                                        <span class="option-label">设备设置</span>
+                                    </label>
+                                    <label class="backup-option">
+                                        <input type="checkbox" v-model="exportOptions.includeAlerts">
+                                        <span class="option-checkmark"></span>
+                                        <span class="option-label">未处理告警</span>
+                                    </label>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button class="btn btn-sm btn-primary" @click="exportBackup" :disabled="exporting">
+                                        <span v-if="exporting" class="spinning">⏳</span>
+                                        <span v-else>📤 导出</span>
+                                    </button>
+                                    <button class="btn btn-sm" style="background: var(--bg-secondary); border: 1px solid var(--border-color);" @click="triggerImport" :disabled="importing">
+                                        <span v-if="importing" class="spinning">⏳</span>
+                                        <span v-else>📥 导入</span>
+                                    </button>
+                                    <input type="file" ref="importFileInput" @change="handleImport" accept=".json" style="display: none;">
+                                </div>
+                                
+                                <!-- 导入选项弹窗 -->
+                                <div v-if="showImportDialog" class="import-dialog-overlay" @click.self="showImportDialog = false">
+                                    <div class="import-dialog">
+                                        <h4>导入备份</h4>
+                                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 10px 0;">
+                                            检测到备份文件：<strong>{{ pendingImport.filename }}</strong>
+                                        </p>
+                                        <div class="import-preview">
+                                            <div class="preview-item">
+                                                <span class="preview-icon">⚙️</span>
+                                                <span class="preview-text">配置文件</span>
+                                                <span class="preview-status">✓ 将更新</span>
+                                            </div>
+                                            <div class="preview-item" v-if="pendingImport.hasDevices">
+                                                <span class="preview-icon">📱</span>
+                                                <span class="preview-text">{{ pendingImport.deviceCount }} 个设备设置</span>
+                                                <span class="preview-status">✓ 将导入</span>
+                                            </div>
+                                            <div class="preview-item" v-if="pendingImport.hasAlerts">
+                                                <span class="preview-icon">🔔</span>
+                                                <span class="preview-text">{{ pendingImport.alertCount }} 条告警</span>
+                                                <span class="preview-status">✓ 将导入</span>
+                                            </div>
+                                        </div>
+                                        <label class="backup-option" style="margin-top: 15px;">
+                                            <input type="checkbox" v-model="importMergeMode">
+                                            <span class="option-checkmark"></span>
+                                            <span class="option-label">合并设备设置</span>
+                                            <span class="option-desc">保留本地已有的设备别名</span>
+                                        </label>
+                                        <div class="import-actions">
+                                            <button class="btn" style="background: var(--input-bg); border: 1px solid var(--border-color);" @click="showImportDialog = false">取消</button>
+                                            <button class="btn btn-primary" @click="confirmImport">确认导入</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <transition name="fade">
+                                    <div v-if="backupStatus" class="backup-status" :class="backupStatus.success ? 'status-success' : 'status-error'">
+                                        <span v-if="backupStatus.success">✅</span>
+                                        <span v-else>❌</span>
+                                        {{ backupStatus.message }}
+                                    </div>
+                                </transition>
+                                
+                                <small style="color: var(--text-muted); display: block; margin-top: 8px; font-size: 0.8rem;">
+                                    密码不在备份范围内，导入后需重新输入
+                                </small>
+                            </div>
+                        </div>
 
-                                <!-- 添加用户 -->
-                                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
-                                    <h4 style="font-size: 0.85rem; margin-bottom: 10px; color: var(--text-muted);">添加新用户</h4>
-                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                        <input type="text" class="form-control" v-model="newUsername"
-                                               placeholder="用户名" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
-                                        <input type="password" class="form-control" v-model="newUserPassword"
-                                               placeholder="密码" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
-                                        <select class="form-control" v-model="newUserRole" style="width: auto; font-size: 0.85rem;">
-                                            <option value="user">用户</option>
-                                            <option value="admin">管理员</option>
-                                        </select>
-                                        <button class="btn btn-primary btn-sm" @click="doAddUser" :disabled="addingUser">
-                                            <span v-if="addingUser" class="spinning">⏳</span>
-                                            <span v-else>添加</span>
+                        <!-- 6. 安全与账户 -->
+                        <div class="settings-section">
+                            <h3>🔐 安全与账户</h3>
+                            
+                            <!-- 认证开关 -->
+                            <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <span style="font-weight: 500;">启用认证</span>
+                                        <small style="display: block; color: var(--text-muted); margin-top: 4px;">启用后需要登录才能访问系统</small>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" v-model="config.auth.enabled" @change="onAuthToggle">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 已登录用户功能 -->
+                            <template v-if="authenticated">
+                                <!-- 当前用户 -->
+                                <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                                    <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">当前账户</h4>
+                                    <div class="about-item" style="margin-bottom: 0;">
+                                        <span class="about-label">用户名</span>
+                                        <span class="about-value" style="color: var(--accent-cyan);">{{ currentUsername || '未知' }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- 修改密码 -->
+                                <div style="background: var(--input-bg); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                                    <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">修改密码</h4>
+                                    <div class="form-group" style="margin-bottom: 12px;">
+                                        <input type="password" class="form-control" v-model="changePasswordOld"
+                                               placeholder="原密码" style="font-size: 0.9rem;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 12px;">
+                                        <input type="password" class="form-control" v-model="changePasswordNew"
+                                               placeholder="新密码（至少6位）" style="font-size: 0.9rem;">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 12px;">
+                                        <input type="password" class="form-control" v-model="changePasswordConfirm"
+                                               placeholder="再次输入新密码" style="font-size: 0.9rem;">
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" @click="doChangePassword" :disabled="changingPassword">
+                                        <span v-if="changingPassword" class="spinning">⏳</span>
+                                        <span v-else>修改密码</span>
+                                    </button>
+                                    <div v-if="changePasswordError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 8px;">
+                                        {{ changePasswordError }}
+                                    </div>
+                                    <div v-if="changePasswordSuccess" style="color: var(--accent-green); font-size: 0.8rem; margin-top: 8px;">
+                                        {{ changePasswordSuccess }}
+                                    </div>
+                                </div>
+
+                                <!-- 用户管理（管理员可见） -->
+                                <div v-if="currentUserRole === 'admin'" style="background: var(--input-bg); border-radius: 12px; padding: 16px;">
+                                    <h4 style="font-size: 0.9rem; margin-bottom: 12px; color: var(--text-secondary);">用户管理</h4>
+                                    <div v-for="user in userList" :key="user.username"
+                                         style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
+                                        <div>
+                                            <span style="font-weight: 500;">{{ user.username }}</span>
+                                            <span class="badge" :class="user.role === 'admin' ? 'badge-trusted' : 'badge-info'" style="margin-left: 8px;">
+                                                {{ user.role === 'admin' ? '管理员' : '用户' }}
+                                            </span>
+                                            <span v-if="user.username === currentUsername" class="badge badge-success" style="margin-left: 4px;">当前</span>
+                                        </div>
+                                        <button v-if="user.username !== currentUsername"
+                                                class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-red); padding: 4px 10px;"
+                                                @click="confirmDeleteUser(user.username)">
+                                            删除
                                         </button>
                                     </div>
-                                    <div v-if="addUserError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 8px;">
-                                        {{ addUserError }}
+
+                                    <!-- 添加用户 -->
+                                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                                        <h4 style="font-size: 0.85rem; margin-bottom: 10px; color: var(--text-muted);">添加新用户</h4>
+                                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                            <input type="text" class="form-control" v-model="newUsername"
+                                                   placeholder="用户名" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
+                                            <input type="password" class="form-control" v-model="newUserPassword"
+                                                   placeholder="密码" style="flex: 1; min-width: 100px; font-size: 0.85rem;">
+                                            <select class="form-control" v-model="newUserRole" style="width: auto; font-size: 0.85rem;">
+                                                <option value="user">用户</option>
+                                                <option value="admin">管理员</option>
+                                            </select>
+                                            <button class="btn btn-primary btn-sm" @click="doAddUser" :disabled="addingUser">
+                                                <span v-if="addingUser" class="spinning">⏳</span>
+                                                <span v-else>添加</span>
+                                            </button>
+                                        </div>
+                                        <div v-if="addUserError" style="color: var(--accent-red); font-size: 0.8rem; margin-top: 8px;">
+                                            {{ addUserError }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </template>
                         </div>
 
-                        <!-- 安全设置 -->
-                        <div class="settings-section">
-                            <h3>🔐 安全设置</h3>
-                            <div class="about-item" style="display: flex; align-items: center; justify-content: space-between;">
-                                <div>
-                                    <span class="about-label">启用认证</span>
-                                    <small style="display: block; color: var(--text-muted); margin-top: 4px;">启用后需要登录才能访问系统</small>
-                                </div>
-                                <label class="switch">
-                                    <input type="checkbox" v-model="config.auth.enabled" @change="onAuthToggle">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div v-if="config.auth.enabled" class="security-tip" style="margin-top: 12px;">
-                                <strong>💡 提示：</strong>请确保已创建管理员账户，否则首次启动时会显示注册页面。
-                            </div>
-                        </div>
-
-                        <!-- 关于 -->
+                        <!-- 7. 关于 -->
                         <div class="settings-section">
                             <h3>ℹ️ 关于</h3>
                             <div class="about-info">
