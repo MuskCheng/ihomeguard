@@ -2235,12 +2235,25 @@
                         <!-- 2. 消息推送 -->
                         <div class="settings-section">
                             <h3>🔔 消息推送</h3>
+                            
+                            <!-- 全局开关 -->
+                            <div class="form-group">
+                                <label><input type="checkbox" v-model="config.push.enabled"> 启用推送通知</label>
+                            </div>
+                            
                             <div class="form-group">
                                 <label>推送渠道</label>
                                 <select class="form-control" v-model="pushChannel">
                                     <option value="pushme">PushMe</option>
                                     <option value="wecom">企业微信</option>
                                     <option value="dingtalk">钉钉</option>
+                                    <option value="telegram">Telegram</option>
+                                    <option value="feishu">飞书</option>
+                                    <option value="bark">Bark (iOS)</option>
+                                    <option value="serverchan">Server酱</option>
+                                    <option value="pushplus">PushPlus</option>
+                                    <option value="smtp">邮件 (SMTP)</option>
+                                    <option value="webhook">自定义 Webhook</option>
                                 </select>
                             </div>
                             
@@ -2248,7 +2261,30 @@
                             <div v-show="pushChannel==='pushme'">
                                 <div class="form-group">
                                     <label>Push Key</label>
-                                    <input type="text" class="form-control" v-model="config.pushme.push_key" placeholder="你的 push_key">
+                                    <input type="text" class="form-control" v-model="config.push.channels.pushme.push_key" placeholder="你的 push_key">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>分组名称</label>
+                                        <input type="text" class="form-control" v-model="config.push.channels.pushme.group" placeholder="iHomeGuard">
+                                        <small style="color: var(--text-muted); display: block; margin-top: 5px;">消息分组，方便分类管理</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>头像图标</label>
+                                        <input type="text" class="form-control" v-model="config.push.channels.pushme.icon" placeholder="🏠">
+                                        <small style="color: var(--text-muted); display: block; margin-top: 5px;">支持 emoji 或文字</small>
+                                    </div>
+                                </div>
+                                <div style="background: var(--input-bg); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                                    <small style="color: var(--text-muted);">
+                                        <strong>消息颜色说明：</strong><br>
+                                        🟩 成功消息 - 系统启动、测试成功<br>
+                                        ⬜ 信息消息 - 日报推送<br>
+                                        🟨 警告消息 - 设备告警
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.pushme.enabled"> 启用此渠道</label>
                                 </div>
                             </div>
                             
@@ -2256,7 +2292,10 @@
                             <div v-show="pushChannel==='wecom'">
                                 <div class="form-group">
                                     <label>Webhook 地址</label>
-                                    <input type="text" class="form-control" v-model="config.pushme.wecom_webhook" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx">
+                                    <input type="text" class="form-control" v-model="config.push.channels.wecom.webhook" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx">
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.wecom.enabled"> 启用此渠道</label>
                                 </div>
                             </div>
                             
@@ -2264,17 +2303,168 @@
                             <div v-show="pushChannel==='dingtalk'">
                                 <div class="form-group">
                                     <label>Webhook 地址</label>
-                                    <input type="text" class="form-control" v-model="config.pushme.dingtalk_webhook" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx">
+                                    <input type="text" class="form-control" v-model="config.push.channels.dingtalk.webhook" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx">
                                 </div>
                                 <div class="form-group">
                                     <label>加签密钥（可选）</label>
-                                    <input type="password" class="form-control" v-model="config.pushme.dingtalk_secret" placeholder="SEC开头的密钥">
+                                    <input type="password" class="form-control" v-model="config.push.channels.dingtalk.secret" placeholder="SEC开头的密钥">
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.dingtalk.enabled"> 启用此渠道</label>
                                 </div>
                             </div>
                             
-                            <div class="form-group">
-                                <label><input type="checkbox" v-model="config.pushme.enabled"> 启用推送通知</label>
+                            <!-- Telegram -->
+                            <div v-show="pushChannel==='telegram'">
+                                <div class="form-group">
+                                    <label>Bot Token</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.telegram.bot_token" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">从 @BotFather 获取</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>User ID</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.telegram.user_id" placeholder="123456789">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">从 @userinfobot 获取</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>API Host（可选）</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.telegram.api_host" placeholder="https://api.telegram.org">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">代理地址，留空使用默认</small>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.telegram.enabled"> 启用此渠道</label>
+                                </div>
                             </div>
+                            
+                            <!-- 飞书 -->
+                            <div v-show="pushChannel==='feishu'">
+                                <div class="form-group">
+                                    <label>Webhook 地址</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.feishu.webhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx 或直接填 webhook key">
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.feishu.enabled"> 启用此渠道</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Bark -->
+                            <div v-show="pushChannel==='bark'">
+                                <div class="form-group">
+                                    <label>Push Key / 地址</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.bark.push_key" placeholder="设备码或完整地址">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">App 内获取或 https://api.day.app/你的Key</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>分组名称（可选）</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.bark.group" placeholder="iHomeGuard">
+                                </div>
+                                <div class="form-group">
+                                    <label>推送声音（可选）</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.bark.sound" placeholder="bell">
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.bark.enabled"> 启用此渠道</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Server酱 -->
+                            <div v-show="pushChannel==='serverchan'">
+                                <div class="form-group">
+                                    <label>SendKey</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.serverchan.push_key" placeholder="SCT开头的Key">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">从 sct.ftqq.com 获取</small>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.serverchan.enabled"> 启用此渠道</label>
+                                </div>
+                            </div>
+                            
+                            <!-- PushPlus -->
+                            <div v-show="pushChannel==='pushplus'">
+                                <div class="form-group">
+                                    <label>Token</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.pushplus.token" placeholder="你的token">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">从 www.pushplus.plus 获取</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>发送渠道</label>
+                                    <select class="form-control" v-model="config.push.channels.pushplus.channel" style="max-width: 200px;">
+                                        <option value="wechat">微信公众号</option>
+                                        <option value="webhook">Webhook</option>
+                                        <option value="cp">企业微信</option>
+                                        <option value="mail">邮件</option>
+                                        <option value="sms">短信</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>消息模板</label>
+                                    <select class="form-control" v-model="config.push.channels.pushplus.template" style="max-width: 200px;">
+                                        <option value="html">HTML</option>
+                                        <option value="txt">纯文本</option>
+                                        <option value="markdown">Markdown</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.pushplus.enabled"> 启用此渠道</label>
+                                </div>
+                            </div>
+                            
+                            <!-- SMTP -->
+                            <div v-show="pushChannel==='smtp'">
+                                <div class="form-group">
+                                    <label>SMTP 服务器</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.smtp.server" placeholder="smtp.qq.com:465">
+                                </div>
+                                <div class="form-group">
+                                    <label>发件邮箱</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.smtp.email" placeholder="your@email.com">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">邮件将发送到此邮箱</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>授权密码</label>
+                                    <input type="password" class="form-control" v-model="config.push.channels.smtp.password" placeholder="授权码或密码">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">QQ邮箱需使用授权码</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>发件人名称</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.smtp.name" placeholder="iHomeGuard">
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.smtp.ssl"> 使用 SSL</label>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.smtp.enabled"> 启用此渠道</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Webhook -->
+                            <div v-show="pushChannel==='webhook'">
+                                <div class="form-group">
+                                    <label>Webhook URL</label>
+                                    <input type="text" class="form-control" v-model="config.push.channels.webhook.url" placeholder="https://your-server.com/notify">
+                                </div>
+                                <div class="form-group">
+                                    <label>请求方法</label>
+                                    <select class="form-control" v-model="config.push.channels.webhook.method" style="max-width: 150px;">
+                                        <option value="POST">POST</option>
+                                        <option value="GET">GET</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Content-Type</label>
+                                    <select class="form-control" v-model="config.push.channels.webhook.content_type" style="max-width: 200px;">
+                                        <option value="application/json">application/json</option>
+                                        <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label><input type="checkbox" v-model="config.push.channels.webhook.enabled"> 启用此渠道</label>
+                                </div>
+                                <small style="color: var(--text-muted); display: block; margin-top: 5px;">
+                                    发送 JSON 格式: {"title": "...", "content": "..."}
+                                </small>
+                            </div>
+                            
                             <div class="form-actions">
                                 <button class="btn btn-primary" @click="testPush" :disabled="testingPush">
                                     <span v-if="testingPush" class="spinning">⏳</span>
@@ -2677,6 +2867,21 @@
                     resolvingAll: false,
                     config: {
                         ikuai: { local_url: '', username: '', password: '' },
+                        push: {
+                            enabled: true,
+                            channels: {
+                                pushme: { enabled: true, push_key: '', api_url: 'https://push.i-i.me', group: 'iHomeGuard', icon: '🏠' },
+                                wecom: { enabled: false, webhook: '' },
+                                dingtalk: { enabled: false, webhook: '', secret: '' },
+                                telegram: { enabled: false, bot_token: '', user_id: '', api_host: '' },
+                                feishu: { enabled: false, webhook: '' },
+                                bark: { enabled: false, push_key: '', sound: '', group: '' },
+                                serverchan: { enabled: false, push_key: '' },
+                                pushplus: { enabled: false, token: '', channel: 'wechat', template: 'html' },
+                                smtp: { enabled: false, server: '', ssl: true, email: '', password: '', name: 'iHomeGuard' },
+                                webhook: { enabled: false, url: '', method: 'POST', content_type: 'application/json' }
+                            }
+                        },
                         pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
                                                             monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200, high_connection_threshold: 500, total_connection_threshold: 1000 },
                         auth: { enabled: false }                    },
@@ -3144,6 +3349,33 @@
                         const res = await axios.get('/api/config');
                         if (res.data) {
                             this.config = { ...this.config, ...res.data };
+                            // 确保 push.channels 结构存在
+                            if (!this.config.push) {
+                                this.config.push = { enabled: true, channels: {} };
+                            }
+                            if (!this.config.push.channels) {
+                                this.config.push.channels = {};
+                            }
+                            // 合并默认渠道配置
+                            const defaultChannels = {
+                                pushme: { enabled: true, push_key: '', api_url: 'https://push.i-i.me', group: 'iHomeGuard', icon: '🏠' },
+                                wecom: { enabled: false, webhook: '' },
+                                dingtalk: { enabled: false, webhook: '', secret: '' },
+                                telegram: { enabled: false, bot_token: '', user_id: '', api_host: '' },
+                                feishu: { enabled: false, webhook: '' },
+                                bark: { enabled: false, push_key: '', sound: '', group: '' },
+                                serverchan: { enabled: false, push_key: '' },
+                                pushplus: { enabled: false, token: '', channel: 'wechat', template: 'html' },
+                                smtp: { enabled: false, server: '', ssl: true, email: '', password: '', name: 'iHomeGuard' },
+                                webhook: { enabled: false, url: '', method: 'POST', content_type: 'application/json' }
+                            };
+                            for (const [name, defaultCfg] of Object.entries(defaultChannels)) {
+                                if (!this.config.push.channels[name]) {
+                                    this.config.push.channels[name] = { ...defaultCfg };
+                                } else {
+                                    this.config.push.channels[name] = { ...defaultCfg, ...this.config.push.channels[name] };
+                                }
+                            }
                             // 同步连接验证状态
                             this.connectionTested = res.data.ikuai?.connection_validated || false;
                         }
@@ -3163,7 +3395,14 @@
                 },
                 async saveSettings() {
                     try {
-                        await axios.post('/api/config', this.config);
+                        // 构建要保存的配置
+                        const configToSave = {
+                            ikuai: this.config.ikuai,
+                            push: this.config.push,
+                            monitor: this.config.monitor,
+                            auth: this.config.auth
+                        };
+                        await axios.post('/api/config', configToSave);
                         alert('设置已保存 ✓');
                     } catch (e) {
                         alert('保存失败: ' + e.message);
@@ -3373,7 +3612,11 @@
                     this.testingPush = true;
                     this.pushStatus = null;
                     try {
-                        const res = await axios.post('/api/test/push', { channel: this.pushChannel, ...this.config.pushme });
+                        const channelData = this.config.push.channels[this.pushChannel] || {};
+                        const res = await axios.post('/api/test/push', { 
+                            channel: this.pushChannel, 
+                            channel_data: channelData 
+                        });
                         this.pushStatus = res.data;
                     } catch (e) {
                         this.pushStatus = { success: false, message: e.message };

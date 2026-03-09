@@ -368,7 +368,42 @@ def get_config():
     try:
         cfg = config.get_config()
         
-        # 密码脱敏
+        # 密码脱敏函数
+        def mask_field(value, show_len=4):
+            if not value:
+                return ''
+            if len(value) <= show_len:
+                return '****'
+            return value[:show_len] + '****'
+        
+        # 构建推送配置（新格式）
+        push_config = cfg.get('push', {})
+        push_channels = push_config.get('channels', {})
+        
+        # 脱敏处理
+        masked_channels = {}
+        for channel_name, channel_cfg in push_channels.items():
+            masked_cfg = dict(channel_cfg)
+            # 脱敏敏感字段
+            for field in ['push_key', 'token', 'password', 'secret', 'bot_token', 'api_key']:
+                if field in masked_cfg and masked_cfg[field]:
+                    masked_cfg[f'{field}_masked'] = mask_field(masked_cfg[field])
+                    masked_cfg[f'{field}_set'] = True
+                elif field in masked_cfg:
+                    masked_cfg[f'{field}_set'] = False
+            masked_channels[channel_name] = masked_cfg
+        
+        # 兼容旧格式
+        pushme_compat = {
+            'push_key': mask_field(push_channels.get('pushme', {}).get('push_key', ''), 4),
+            'push_key_set': bool(push_channels.get('pushme', {}).get('push_key')),
+            'wecom_webhook': push_channels.get('wecom', {}).get('webhook', ''),
+            'dingtalk_webhook': push_channels.get('dingtalk', {}).get('webhook', ''),
+            'dingtalk_secret': '****' if push_channels.get('dingtalk', {}).get('secret') else '',
+            'dingtalk_secret_set': bool(push_channels.get('dingtalk', {}).get('secret')),
+            'enabled': push_config.get('enabled', True)
+        }
+        
         result = {
             'ikuai': {
                 'local_url': cfg['ikuai'].get('local_url', ''),
@@ -376,15 +411,11 @@ def get_config():
                 'password': '****' if cfg['ikuai'].get('password') else '',
                 'connection_validated': cfg['ikuai'].get('connection_validated', False)
             },
-            'pushme': {
-                'push_key': config.mask_sensitive(cfg['pushme'].get('push_key', ''), 4),
-                'push_key_set': bool(cfg['pushme'].get('push_key', '')),
-                'wecom_webhook': cfg['pushme'].get('wecom_webhook', ''),
-                'dingtalk_webhook': cfg['pushme'].get('dingtalk_webhook', ''),
-                'dingtalk_secret': '****' if cfg['pushme'].get('dingtalk_secret') else '',
-                'dingtalk_secret_set': bool(cfg['pushme'].get('dingtalk_secret', '')),
-                'enabled': cfg['pushme'].get('enabled', True)
+            'push': {
+                'enabled': push_config.get('enabled', True),
+                'channels': masked_channels
             },
+            'pushme': pushme_compat,  # 兼容旧前端
             'monitor': cfg.get('monitor', {}),
             'web': cfg.get('web', {}),
             'auth': {
@@ -415,18 +446,79 @@ def save_config():
             if not pwd or pwd == '****' or pwd.endswith('****'):
                 ikuai_data['password'] = cfg['ikuai'].get('password', '')
             cfg['ikuai'].update(ikuai_data)
+        
+        # 处理新的 push 配置
+        if 'push' in data:
+            push_data = data['push']
+            if 'push' not in cfg:
+                cfg['push'] = config.get_default_config()['push']
+            
+            # 更新 enabled
+            cfg['push']['enabled'] = push_data.get('enabled', True)
+            
+            # 更新各渠道配置
+            if 'channels' in push_data:
+                if 'channels' not in cfg['push']:
+                    cfg['push']['channels'] = {}
+                
+                for channel_name, channel_cfg in push_data['channels'].items():
+                    if channel_name not in cfg['push']['channels']:
+                        cfg['push']['channels'][channel_name] = {}
+                    
+                    # 跳过脱敏字段（保留原值）
+                    clean_cfg = {}
+                    for key, value in channel_cfg.items():
+                        if key.endswith('_masked') or key.endswith('_set'):
+                            continue
+                        # 敏感字段脱敏检查
+                        if key in ['push_key', 'token', 'password', 'secret', 'bot_token', 'api_key']:
+                            if value and ('****' in str(value) or len(str(value)) < 10):
+                                # 保留原值
+                                original = cfg['push']['channels'].get(channel_name, {}).get(key, '')
+                                if original:
+                                    clean_cfg[key] = original
+                            else:
+                                clean_cfg[key] = value
+                        else:
+                            clean_cfg[key] = value
+                    
+                    cfg['push']['channels'][channel_name].update(clean_cfg)
+        
+        # 兼容旧 pushme 格式
         if 'pushme' in data:
             pushme_data = data['pushme']
+            if 'push' not in cfg:
+                cfg['push'] = config.get_default_config()['push']
+            if 'channels' not in cfg['push']:
+                cfg['push']['channels'] = config.get_default_config()['push']['channels']
+            
             # push_key 脱敏处理
             push_key = pushme_data.get('push_key', '')
             if push_key and ('****' in push_key or len(push_key) < 10):
-                # 脱敏值或太短，保持原值
-                pushme_data['push_key'] = cfg['pushme'].get('push_key', '')
-            # dingtalk_secret 脱敏处理
+                push_key = cfg['push']['channels']['pushme'].get('push_key', '')
+            if push_key:
+                cfg['push']['channels']['pushme']['push_key'] = push_key
+                cfg['push']['channels']['pushme']['enabled'] = True
+            
+            # 企业微信
+            if pushme_data.get('wecom_webhook'):
+                cfg['push']['channels']['wecom']['webhook'] = pushme_data['wecom_webhook']
+                cfg['push']['channels']['wecom']['enabled'] = True
+            
+            # 钉钉
+            if pushme_data.get('dingtalk_webhook'):
+                cfg['push']['channels']['dingtalk']['webhook'] = pushme_data['dingtalk_webhook']
+                cfg['push']['channels']['dingtalk']['enabled'] = True
             secret = pushme_data.get('dingtalk_secret', '')
-            if secret == '****':
-                pushme_data['dingtalk_secret'] = cfg['pushme'].get('dingtalk_secret', '')
-            cfg['pushme'].update(pushme_data)
+            if secret and secret != '****':
+                cfg['push']['channels']['dingtalk']['secret'] = secret
+            
+            cfg['push']['enabled'] = pushme_data.get('enabled', True)
+            
+            # 同时更新旧 pushme 配置（兼容）
+            cfg['pushme']['push_key'] = cfg['push']['channels']['pushme'].get('push_key', '')
+            cfg['pushme']['enabled'] = pushme_data.get('enabled', True)
+        
         if 'monitor' in data:
             cfg['monitor'].update(data['monitor'])
         if 'auth' in data:
@@ -538,25 +630,43 @@ def test_push():
         data = request.get_json()
         channel = data.get('channel', 'pushme')
         
-        # 先保存推送配置
+        # 获取当前配置
         cfg = config.get_config()
-        if 'push_key' in data and data['push_key']:
-            cfg['pushme']['push_key'] = data['push_key']
-        if 'wecom_webhook' in data and data['wecom_webhook']:
-            cfg['pushme']['wecom_webhook'] = data['wecom_webhook']
-        if 'dingtalk_webhook' in data and data['dingtalk_webhook']:
-            cfg['pushme']['dingtalk_webhook'] = data['dingtalk_webhook']
-        if 'dingtalk_secret' in data and data['dingtalk_secret']:
-            cfg['pushme']['dingtalk_secret'] = data['dingtalk_secret']
+        if 'push' not in cfg:
+            cfg['push'] = config.get_default_config()['push']
+        if 'channels' not in cfg['push']:
+            cfg['push']['channels'] = config.get_default_config()['push']['channels']
+        
+        # 更新渠道配置（如果有传入）
+        channel_data = data.get('channel_data', {})
+        if channel_data:
+            if channel not in cfg['push']['channels']:
+                cfg['push']['channels'][channel] = {}
+            
+            # 跳过脱敏字段
+            for key, value in channel_data.items():
+                if key.endswith('_masked') or key.endswith('_set'):
+                    continue
+                if value and '****' not in str(value):
+                    cfg['push']['channels'][channel][key] = value
+        
+        # 临时保存配置
         config.save_config(cfg)
         logger.debug(f"配置已保存，测试渠道: {channel}")
         
-        from services.pusher import MultiPushClient
+        from services.pusher import PushDispatcher, CHANNEL_NAMES
         
-        client = MultiPushClient(config.get_config()['pushme'])
-        success, msg = client.test_push(channel)
+        dispatcher = PushDispatcher(cfg['push'])
         
-        return jsonify({'success': success, 'message': msg})
+        # 检查渠道是否存在
+        if channel not in dispatcher.clients:
+            return jsonify({'success': False, 'message': f'未知渠道: {CHANNEL_NAMES.get(channel, channel)}'})
+        
+        success, msg = dispatcher.test_channel(channel)
+        
+        channel_display = CHANNEL_NAMES.get(channel, channel)
+        
+        return jsonify({'success': success, 'message': f'{channel_display}: {msg}'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 

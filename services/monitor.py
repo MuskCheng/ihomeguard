@@ -90,18 +90,23 @@ class MonitorService:
             total_upload_speed += upload_speed
             total_download_speed += download_speed
             
+            # 检测新设备 - 在 upsert 之前判断（数据库中不存在才是真正的新设备）
+            if self.config.get('alert_new_device', True):
+                if mac not in self._known_devices:
+                    # 内存缓存未命中，检查数据库
+                    existing_device = storage.get_device(mac)
+                    if existing_device is None:
+                        # 数据库中不存在，是真正的新设备
+                        self._handle_new_device(mac, ip, hostname)
+                    # 无论是否新设备，都加入内存缓存
+                    self._known_devices.add(mac)
+            
             # 更新设备信息
             storage.upsert_device(mac, ip, hostname)
             
             # 记录在线数据
             storage.add_online_record(mac, ip, upload, download, 
                                       upload_speed, download_speed, connections)
-            
-            # 检测新设备
-            if self.config.get('alert_new_device', True):
-                if mac not in self._known_devices:
-                    self._handle_new_device(mac, ip, hostname)
-                    self._known_devices.add(mac)
         
         # 检测设备上下线事件
         self._detect_device_events(current_devices)
@@ -161,26 +166,20 @@ class MonitorService:
         self._last_known_devices = current_devices
     
     def _handle_new_device(self, mac: str, ip: str, hostname: str):
-        """处理新设备接入（仅在设备首次接入时告警）"""
+        """处理新设备接入告警"""
+        # 记录设备上线事件
         storage.add_device_event(mac, 'online', ip)
         
-        device = storage.get_device(mac)
-        # 只有设备从未在数据库中出现过，才是真正的"新设备"
-        # 注意：此时设备已经被 upsert_device 插入数据库，但我们通过 first_seen 时间判断
-        is_truly_new = device is None or device.get('first_seen') == device.get('last_seen')
+        # 添加告警记录
+        storage.add_alert(
+            alert_type='new_device',
+            severity='warning',
+            mac=mac,
+            message=f'新设备接入: {hostname or mac[:8]} ({ip})'
+        )
         
-        if is_truly_new:
-            # 添加告警记录
-            storage.add_alert(
-                alert_type='new_device',
-                severity='warning',
-                mac=mac,
-                message=f'新设备接入: {hostname or mac[:8]} ({ip})'
-            )
-            
-            # 推送通知
-            if self.config.get('alert_new_device', True):
-                self._send_new_device_notification(mac, ip, hostname)
+        # 推送通知
+        self._send_new_device_notification(mac, ip, hostname)
     
     def _send_new_device_notification(self, mac: str, ip: str, hostname: str):
         """发送新设备接入通知"""

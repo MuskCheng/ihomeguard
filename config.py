@@ -129,6 +129,45 @@ def get_config():
                     if encrypted and encrypted.startswith('enc:'):
                         _config[section][field] = decrypt_value(encrypted[4:])
         
+        # 解密 push.channels 中的敏感字段
+        if 'push' in _config and 'channels' in _config['push']:
+            for channel_name, channel_config in _config['push']['channels'].items():
+                if isinstance(channel_config, dict):
+                    for field in SENSITIVE_FIELDS:
+                        if field in channel_config:
+                            encrypted = channel_config.get(field, '')
+                            if encrypted and encrypted.startswith('enc:'):
+                                channel_config[field] = decrypt_value(encrypted[4:])
+        
+        # 从旧 pushme 配置迁移到新 push 配置
+        if 'pushme' in _config and _config['pushme'].get('push_key'):
+            if 'push' not in _config:
+                _config['push'] = get_default_config()['push']
+            if 'channels' not in _config['push']:
+                _config['push']['channels'] = get_default_config()['push']['channels']
+            
+            # 迁移 PushMe 配置
+            if _config['pushme'].get('push_key'):
+                _config['push']['channels']['pushme']['push_key'] = _config['pushme']['push_key']
+                _config['push']['channels']['pushme']['enabled'] = True
+            if _config['pushme'].get('api_url'):
+                _config['push']['channels']['pushme']['api_url'] = _config['pushme']['api_url']
+            
+            # 迁移企业微信配置
+            if _config['pushme'].get('wecom_webhook'):
+                _config['push']['channels']['wecom']['webhook'] = _config['pushme']['wecom_webhook']
+                _config['push']['channels']['wecom']['enabled'] = True
+            
+            # 迁移钉钉配置
+            if _config['pushme'].get('dingtalk_webhook'):
+                _config['push']['channels']['dingtalk']['webhook'] = _config['pushme']['dingtalk_webhook']
+                _config['push']['channels']['dingtalk']['enabled'] = True
+            if _config['pushme'].get('dingtalk_secret'):
+                _config['push']['channels']['dingtalk']['secret'] = _config['pushme']['dingtalk_secret']
+            
+            # 迁移 enabled 状态
+            _config['push']['enabled'] = _config['pushme'].get('enabled', True)
+        
         # 环境变量覆盖（优先级高于配置文件）
         if os.environ.get('IKUAI_URL'):
             _config['ikuai']['local_url'] = os.environ['IKUAI_URL']
@@ -159,6 +198,69 @@ def get_default_config():
             "password": os.environ.get('IKUAI_PASS', ''),
             "connection_validated": False
         },
+        "push": {
+            "enabled": True,
+            "channels": {
+                "pushme": {
+                    "enabled": True,
+                    "push_key": os.environ.get('PUSHME_KEY', ''),
+                    "api_url": os.environ.get('PUSHME_URL', 'https://push.i-i.me'),
+                    "group": os.environ.get('PUSHME_GROUP', 'iHomeGuard'),
+                    "icon": os.environ.get('PUSHME_ICON', '🏠')
+                },
+                "wecom": {
+                    "enabled": False,
+                    "webhook": os.environ.get('WECOM_WEBHOOK', '')
+                },
+                "dingtalk": {
+                    "enabled": False,
+                    "webhook": os.environ.get('DD_BOT_TOKEN', ''),
+                    "secret": os.environ.get('DD_BOT_SECRET', '')
+                },
+                "telegram": {
+                    "enabled": False,
+                    "bot_token": os.environ.get('TG_BOT_TOKEN', ''),
+                    "user_id": os.environ.get('TG_USER_ID', ''),
+                    "api_host": os.environ.get('TG_API_HOST', '')
+                },
+                "feishu": {
+                    "enabled": False,
+                    "webhook": os.environ.get('FSKEY', '')
+                },
+                "bark": {
+                    "enabled": False,
+                    "push_key": os.environ.get('BARK_PUSH', ''),
+                    "sound": os.environ.get('BARK_SOUND', ''),
+                    "group": os.environ.get('BARK_GROUP', '')
+                },
+                "serverchan": {
+                    "enabled": False,
+                    "push_key": os.environ.get('PUSH_KEY', '')
+                },
+                "pushplus": {
+                    "enabled": False,
+                    "token": os.environ.get('PUSH_PLUS_TOKEN', ''),
+                    "channel": os.environ.get('PUSH_PLUS_CHANNEL', 'wechat'),
+                    "template": os.environ.get('PUSH_PLUS_TEMPLATE', 'html')
+                },
+                "smtp": {
+                    "enabled": False,
+                    "server": os.environ.get('SMTP_SERVER', ''),
+                    "ssl": os.environ.get('SMTP_SSL', 'true').lower() == 'true',
+                    "email": os.environ.get('SMTP_EMAIL', ''),
+                    "password": os.environ.get('SMTP_PASSWORD', ''),
+                    "name": os.environ.get('SMTP_NAME', 'iHomeGuard')
+                },
+                "webhook": {
+                    "enabled": False,
+                    "url": os.environ.get('WEBHOOK_URL', ''),
+                    "method": os.environ.get('WEBHOOK_METHOD', 'POST'),
+                    "headers": {},
+                    "content_type": os.environ.get('WEBHOOK_CONTENT_TYPE', 'application/json')
+                }
+            }
+        },
+        # 兼容旧配置
         "pushme": {
             "push_key": os.environ.get('PUSHME_KEY', ''),
             "api_url": "https://push.i-i.me",
@@ -213,6 +315,16 @@ def save_config(config: dict):
                 value = config_to_save[section].get(field, '')
                 if value and not value.startswith('enc:'):
                     config_to_save[section][field] = 'enc:' + encrypt_value(value)
+    
+    # 加密 push.channels 中的敏感字段
+    if 'push' in config_to_save and 'channels' in config_to_save['push']:
+        for channel_name, channel_config in config_to_save['push']['channels'].items():
+            if isinstance(channel_config, dict):
+                for field in SENSITIVE_FIELDS:
+                    if field in channel_config:
+                        value = channel_config.get(field, '')
+                        if value and not value.startswith('enc:'):
+                            channel_config[field] = 'enc:' + encrypt_value(value)
     
     try:
         with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
