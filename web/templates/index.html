@@ -1386,9 +1386,90 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* 设置页面卡片 - 取消 overflow 以支持 sticky */
+        .card-settings {
+            overflow: visible !important;
+        }
+        
+        /* 设置页面左右布局 */
+        .settings-layout {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        
+        /* 左侧导航栏 - 粘性定位 */
+        .settings-nav {
+            width: 200px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 80px;
+            height: fit-content;
+            max-height: calc(100vh - 104px);
+            overflow-y: auto;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 12px;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .settings-nav:hover {
+            border-color: var(--border-hover);
+        }
+        
+        .settings-nav-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
+        
+        .settings-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+        
+        .settings-nav-item:hover {
+            background: var(--input-bg);
+            color: var(--text-primary);
+        }
+        
+        .settings-nav-item.active {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
+            color: var(--text-primary);
+            border: 1px solid var(--border-hover);
+        }
+        
+        .settings-nav-item .nav-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        
+        /* 右侧内容区 */
+        .settings-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
         /* 设置页面分类标题 */
         .settings-section {
             margin-bottom: 32px;
+            scroll-margin-top: 88px;
         }
         
         .settings-section h3 {
@@ -1712,6 +1793,46 @@
             }
             .summary-value {
                 font-size: 1.3rem;
+            }
+        }
+        
+        /* 设置页面移动端适配 */
+        @media (max-width: 1024px) {
+            .settings-layout {
+                flex-direction: column;
+            }
+            
+            .settings-nav {
+                width: 100%;
+                position: relative;
+                top: 0;
+                height: auto;
+                overflow-y: visible;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 12px;
+                margin-bottom: 16px;
+            }
+            
+            .settings-nav-title {
+                width: 100%;
+                margin-bottom: 4px;
+            }
+            
+            .settings-nav-item {
+                flex: 0 0 auto;
+                padding: 8px 12px;
+                font-size: 0.8rem;
+                margin-bottom: 0;
+            }
+            
+            .settings-nav-item .nav-icon {
+                font-size: 1rem;
+            }
+            
+            .settings-content {
+                overflow: visible;
             }
         }
         
@@ -2187,15 +2308,50 @@
             
             <!-- 设置页面 -->
             <div class="page" :class="{active: currentPage==='settings'}">
-                <div class="card">
+                <div class="card card-settings">
                     <div class="card-header">
                         <span class="card-title-icon">⚙️</span>
                         <span>系统设置</span>
                     </div>
                     <div class="card-body">
-                        <!-- 1. 连接配置 -->
-                        <div class="settings-section">
-                            <h3>🔌 连接配置</h3>
+                        <div class="settings-layout">
+                            <!-- 左侧导航 -->
+                            <div class="settings-nav">
+                                <div class="settings-nav-title">设置导航</div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='connection'}" @click="scrollToSection('connection')">
+                                    <span class="nav-icon">🔌</span>
+                                    <span>连接配置</span>
+                                </div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='push'}" @click="scrollToSection('push')">
+                                    <span class="nav-icon">🔔</span>
+                                    <span>消息推送</span>
+                                </div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='monitor'}" @click="scrollToSection('monitor')">
+                                    <span class="nav-icon">📊</span>
+                                    <span>监控策略</span>
+                                </div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='alert'}" @click="scrollToSection('alert')">
+                                    <span class="nav-icon">⚠️</span>
+                                    <span>告警规则</span>
+                                </div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='data'}" @click="scrollToSection('data')">
+                                    <span class="nav-icon">🗄️</span>
+                                    <span>数据管理</span>
+                                </div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='security'}" @click="scrollToSection('security')">
+                                    <span class="nav-icon">🔐</span>
+                                    <span>安全账户</span>
+                                </div>
+                                <div class="settings-nav-item" :class="{active: activeSection==='about'}" @click="scrollToSection('about')">
+                                    <span class="nav-icon">ℹ️</span>
+                                    <span>关于</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 右侧内容区 -->
+                                                            <div class="settings-content" ref="settingsContent">                                <!-- 1. 连接配置 -->
+                                <div class="settings-section" id="section-connection">
+                                    <h3>🔌 连接配置</h3>
                             <div class="security-tip">
                                 <strong>🔒 安全建议：</strong>请勿使用管理员账户！建议创建<strong>只读账户</strong>用于数据采集。
                             </div>
@@ -2240,7 +2396,7 @@
                         </div>
                         
                         <!-- 2. 消息推送 -->
-                        <div class="settings-section">
+                        <div class="settings-section" id="section-push">
                             <h3>🔔 消息推送</h3>
                             
                             <!-- 全局开关 -->
@@ -2488,7 +2644,7 @@
                         </div>
                         
                         <!-- 3. 监控策略 -->
-                        <div class="settings-section">
+                        <div class="settings-section" id="section-monitor">
                             <h3>📊 监控策略</h3>
                             <div class="form-row">
                                 <div class="form-group">
@@ -2507,7 +2663,7 @@
                         </div>
                         
                         <!-- 4. 告警规则 -->
-                        <div class="settings-section">
+                        <div class="settings-section" id="section-alert">
                             <h3>⚠️ 告警规则</h3>
                             
                             <!-- 流量告警 -->
@@ -2563,7 +2719,7 @@
                         </div>
                         
                         <!-- 5. 数据管理 -->
-                        <div class="settings-section">
+                        <div class="settings-section" id="section-data">
                             <h3>🗄️ 数据管理</h3>
                             
                             <!-- 数据库状态 -->
@@ -2695,7 +2851,7 @@
                         </div>
 
                         <!-- 6. 安全与账户 -->
-                        <div class="settings-section">
+                        <div class="settings-section" id="section-security">
                             <h3>🔐 安全与账户</h3>
                             
                             <!-- 认证开关 -->
@@ -2795,7 +2951,7 @@
                         </div>
 
                         <!-- 7. 关于 -->
-                        <div class="settings-section">
+                        <div class="settings-section" id="section-about">
                             <h3>ℹ️ 关于</h3>
                             <div class="about-info">
                                 <div class="about-item">
@@ -2831,22 +2987,11 @@
                                 <span v-else-if="updateInfo.has_update" style="color: var(--accent-green);">🎉 发现新版本 {{ updateInfo.latest_version }}，请前往 GitHub 下载更新</span>
                                 <span v-else-if="updateInfo.checked && !updateInfo.has_update" style="color: var(--accent-cyan);">✅ 当前已是最新版本</span>
                             </div>
-                            <!-- 更新日志 -->
-                            <div v-if="updateInfo.releases && updateInfo.releases.length > 0" class="changelog-section" style="margin-top: 20px;">
-                                <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">📝 最近更新</h4>
-                                <div class="changelog-list">
-                                    <div v-for="release in updateInfo.releases" :key="release.version" class="changelog-item">
-                                        <div class="changelog-header">
-                                            <span class="changelog-version">{{ release.version }}</span>
-                                            <span class="changelog-date">{{ formatDate(release.published_at) }}</span>
-                                        </div>
-                                        <div class="changelog-body" v-html="formatChangelog(release.body)"></div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                         
                         <button class="btn btn-success" @click="saveSettings">💾 保存设置</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2861,6 +3006,7 @@
             data() {
                 return {
                     currentPage: 'devices',
+                    activeSection: 'connection',
                     mobileMenuOpen: false,
                     loading: false,
                     devices: [],
@@ -2986,6 +3132,41 @@
                 }
             },
             methods: {
+                // ========== 设置页面导航 ==========
+                scrollToSection(section) {
+                    this.activeSection = section;
+                    const el = document.getElementById('section-' + section);
+                    if (el) {
+                        const offset = 100;
+                        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+                        window.scrollTo({ top: top, behavior: 'smooth' });
+                    }
+                },
+                onSettingsScroll() {
+                    // 只在设置页面时监听
+                    if (this.currentPage !== 'settings') return;
+                    
+                    const sections = ['connection', 'push', 'monitor', 'alert', 'data', 'security', 'about'];
+                    const offset = 120;
+                    
+                    // 检查是否滚动到页面底部
+                    const isAtBottom = (window.innerHeight + window.scrollY) >= document.body.scrollHeight - 100;
+                    if (isAtBottom) {
+                        this.activeSection = sections[sections.length - 1]; // 高亮最后一个
+                        return;
+                    }
+                    
+                    for (const section of sections) {
+                        const el = document.getElementById('section-' + section);
+                        if (el) {
+                            const rect = el.getBoundingClientRect();
+                            if (rect.top <= offset && rect.bottom > offset) {
+                                this.activeSection = section;
+                                break;
+                            }
+                        }
+                    }
+                },
                 // ========== 认证相关 ==========
                 async checkAuthStatus() {
                     try {
@@ -4176,6 +4357,11 @@
                     axios.defaults.headers.common['Authorization'] = 'Bearer ' + savedToken;
                 }
                 this.checkAuthStatus();
+                // 添加窗口滚动监听（设置页导航高亮）
+                window.addEventListener('scroll', this.onSettingsScroll);
+            },
+            beforeUnmount() {
+                window.removeEventListener('scroll', this.onSettingsScroll);
             }
         }).mount('#app');
     </script>
