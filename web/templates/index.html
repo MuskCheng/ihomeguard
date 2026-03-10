@@ -4170,6 +4170,11 @@
             },
             mounted() {
                 this.loadTheme();
+                // 从 localStorage 恢复认证 token（解决刷新页面需重新登录问题）
+                const savedToken = localStorage.getItem('auth_token');
+                if (savedToken) {
+                    axios.defaults.headers.common['Authorization'] = 'Bearer ' + savedToken;
+                }
                 this.checkAuthStatus();
             }
         }).mount('#app');

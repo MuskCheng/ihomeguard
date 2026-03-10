@@ -735,34 +735,43 @@ class MultiPushClient(PushDispatcher):
         """发送日报"""
         date = report_data['date']
         
-        title = f"昨日网络日报 - {date}"
+        title = f"网络日报 - {date}"
         
         # 流量统计
         upload_gb = report_data['total_upload'] / (1024 ** 3)
         download_gb = report_data['total_download'] / (1024 ** 3)
         total_gb = upload_gb + download_gb
         
-        content = f"""## 📊 昨日网络日报 - {date}
+        # 环比数据
+        comparison = report_data.get('comparison', {})
+        upload_change = comparison.get('upload_percent', 0)
+        download_change = comparison.get('download_percent', 0)
+        
+        # 环比箭头
+        upload_arrow = '↑' if upload_change > 0 else ('↓' if upload_change < 0 else '→')
+        download_arrow = '↑' if download_change > 0 else ('↓' if download_change < 0 else '→')
+        
+        content = f"""## 📊 网络日报 - {date}
 
 ### 📈 流量统计
-| 指标 | 数值 |
-|------|------|
-| ⬆️ 今日上传 | **{upload_gb:.2f} GB** |
-| ⬇️ 今日下载 | **{download_gb:.2f} GB** |
-| 📡 总流量 | **{total_gb:.2f} GB** |
+| 指标 | 数值 | 环比 |
+|------|------|------|
+| ⬆️ 上传 | **{upload_gb:.2f} GB** | {upload_arrow} {abs(upload_change):.1f}% |
+| ⬇️ 下载 | **{download_gb:.2f} GB** | {download_arrow} {abs(download_change):.1f}% |
+| 📡 总流量 | **{total_gb:.2f} GB** | - |
 
 ### 📱 设备概览
 | 指标 | 数值 |
 |------|------|
-| 当前在线 | **{report_data['device_count']} 台** |
+| 活跃设备 | **{report_data['device_count']} 台** |
 | 日峰值 | **{report_data['peak_device_count']} 台** |
 | 最大连接数 | **{report_data['max_connections']}** |
 
 """
         
-        # 设备详情
+        # 设备流量排行 TOP5
         if report_data.get('devices'):
-            content += "### 🔌 设备流量排行 TOP5\n"
+            content += "### 🔌 流量排行 TOP5\n"
             content += "| 设备 | 上传 | 下载 | 总计 |\n"
             content += "|------|------|------|------|\n"
             
@@ -779,17 +788,39 @@ class MultiPushClient(PushDispatcher):
                 total = up + down
                 content += f"| {name} | {up:.0f} MB | {down:.0f} MB | {total:.0f} MB |\n"
         
-        # 上下线事件
+        # 在线时长排行 TOP5
+        if report_data.get('devices'):
+            online_sorted = sorted(
+                [d for d in report_data['devices'] if d.get('online_minutes', 0) > 0],
+                key=lambda x: x.get('online_minutes', 0),
+                reverse=True
+            )[:5]
+            
+            if online_sorted:
+                content += "\n### ⏱️ 在线时长 TOP5\n"
+                content += "| 设备 | 时长 |\n"
+                content += "|------|------|\n"
+                for dev in online_sorted:
+                    name = dev.get('alias') or dev.get('hostname') or dev['mac'][:8]
+                    minutes = dev.get('online_minutes', 0)
+                    hours = minutes // 60
+                    mins = minutes % 60
+                    if hours > 0:
+                        content += f"| {name} | {hours}h {mins}m |\n"
+                    else:
+                        content += f"| {name} | {mins}m |\n"
+        
+        # 设备活动统计
         if report_data.get('events'):
             online_events = [e for e in report_data['events'] if e['event_type'] == 'online']
             offline_events = [e for e in report_data['events'] if e['event_type'] == 'offline']
             content += f"\n### 🔄 设备活动\n"
-            content += f"- 新上线设备: **{len(online_events)} 台**\n"
-            content += f"- 离线设备: **{len(offline_events)} 台**\n"
+            content += f"- 上线事件: **{len(online_events)} 次**\n"
+            content += f"- 离线事件: **{len(offline_events)} 次**\n"
         
         # 告警信息
         if report_data.get('alerts'):
-            content += "\n### ⚠️ 异常提醒\n"
+            content += "\n### ⚠️ 安全告警\n"
             for alert in report_data['alerts'][:5]:
                 content += f"- {alert['message']}\n"
         

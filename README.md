@@ -8,7 +8,7 @@
 
   <i>一个现代化的家庭网络监控与管理工具</i>
 
-  [![Version](https://img.shields.io/badge/Version-1.2.6-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
+  [![Version](https://img.shields.io/badge/Version-1.2.15-blue?logo=semver&logoColor=white)](https://github.com/MuskCheng/ihomeguard/releases)
   [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
   [![Flask](https://img.shields.io/badge/Flask-3.1-green?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -31,7 +31,7 @@
 - 📱 **实时监控** - 实时查看在线设备、流量速度、连接数
 - 📊 **数据可视化** - 流量趋势图表、设备统计、流量预测
 - 🚨 **智能告警** - 新设备检测、设备离线、流量异常告警
-- 📬 **多渠道推送** - 支持 PushMe、企业微信、钉钉
+- 📬 **多渠道推送** - 支持 PushMe、企业微信、钉钉、Telegram、飞书、Bark 等 10+ 渠道
 - 🔐 **安全存储** - 敏感数据加密存储，保护隐私安全
 - 🔑 **用户认证** - 用户名/密码登录，bcrypt 密码哈希，JWT Token（v1.2.5+）
 - 👤 **账户管理** - 修改密码、用户管理、权限控制（v1.2.6+）
@@ -48,6 +48,7 @@
 ### 📱 设备监控
 - 实时在线设备列表
 - 设备流量速度监控
+- 今日流量增量统计
 - 设备连接数统计
 - 设备厂商识别
 - 智能设备图标
@@ -85,6 +86,13 @@
 - PushMe 推送
 - 企业微信机器人
 - 钉钉机器人
+- Telegram Bot
+- 飞书机器人
+- Bark (iOS)
+- Server酱
+- PushPlus
+- 邮件 (SMTP)
+- 自定义 Webhook
 - 每日网络日报
 - 实时告警通知
 - 推送测试功能
@@ -97,11 +105,12 @@
 ### 🔐 安全特性
 - 用户名/密码认证
 - bcrypt 密码哈希存储
-- JWT Token 认证（24小时有效）
+- JWT Token 认证（2小时有效）
 - 登录失败锁定（5次锁定5分钟）
 - 首次启动注册管理员
 - 管理员权限控制
 - 敏感字段脱敏显示
+- 页面刷新保持登录状态
 
 </td>
 <td width="50%">
@@ -232,6 +241,12 @@ python app.py
 | PushMe | Push Key | [PushMe 官网](https://push.i-i.me/) |
 | 企业微信 | Webhook 地址 | 企业微信群机器人设置 |
 | 钉钉 | Webhook + 密钥 | 钉钉群机器人设置 |
+| Telegram | Bot Token + User ID | @BotFather 和 @userinfobot |
+| 飞书 | Webhook 地址 | 飞书群机器人设置 |
+| Bark | Push Key | App Store 下载 Bark |
+| Server酱 | SendKey | [Server酱官网](https://sct.ftqq.com/) |
+| PushPlus | Token | [PushPlus官网](http://www.pushplus.plus/) |
+| SMTP | 服务器 + 邮箱 + 密码 | 邮箱服务商设置 |
 
 ### 监控参数配置
 

@@ -540,6 +540,16 @@ def get_recent_alerts(limit: int = 20) -> list:
         ''', (limit,))]
 
 
+def get_alerts_by_date(date: str, limit: int = 20) -> list:
+    """获取指定日期的告警"""
+    with get_db() as conn:
+        return [dict(row) for row in conn.execute('''
+            SELECT * FROM alerts 
+            WHERE date(created_at) = ?
+            ORDER BY created_at DESC LIMIT ?
+        ''', (date, limit))]
+
+
 # ========== 事件操作 ==========
 
 def add_device_event(mac: str, event_type: str, ip: str = None):

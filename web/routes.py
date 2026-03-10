@@ -384,11 +384,11 @@ def get_config():
         masked_channels = {}
         for channel_name, channel_cfg in push_channels.items():
             masked_cfg = dict(channel_cfg)
-            # 脱敏敏感字段
+            # 脱敏敏感字段：用脱敏值替换原字段
             for field in ['push_key', 'token', 'password', 'secret', 'bot_token', 'api_key']:
                 if field in masked_cfg and masked_cfg[field]:
-                    masked_cfg[f'{field}_masked'] = mask_field(masked_cfg[field])
                     masked_cfg[f'{field}_set'] = True
+                    masked_cfg[field] = mask_field(masked_cfg[field])
                 elif field in masked_cfg:
                     masked_cfg[f'{field}_set'] = False
             masked_channels[channel_name] = masked_cfg

@@ -38,7 +38,7 @@ def _import_jwt():
 MAX_FAILED_ATTEMPTS = 5          # 最大失败次数
 LOCKOUT_DURATION = 300           # 锁定时长（秒）
 CHALLENGE_EXPIRE = 60            # 挑战码有效期（秒）
-JWT_EXPIRE_HOURS = 24            # JWT Token 有效期（小时）
+JWT_EXPIRE_HOURS = 2             # JWT Token 有效期（小时）
 JWT_ALGORITHM = 'HS256'
 
 
