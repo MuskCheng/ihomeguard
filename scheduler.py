@@ -287,7 +287,7 @@ def start_scheduler():
     scheduler.add_job(collect_task, 'interval', seconds=interval, id='collect')
     
     # 会话保活任务 - 在超时时间的50%间隔执行
-    session_timeout = monitor_cfg.get('session_timeout', 120)  # 分钟
+    session_timeout = cfg.get('ikuai', {}).get('session_timeout', 120)  # 分钟
     keepalive_interval = int(session_timeout * 60 * 0.5)  # 转换为秒，取50%
     scheduler.add_job(keepalive_task, 'interval', seconds=keepalive_interval, id='keepalive')
     

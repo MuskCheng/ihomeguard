@@ -66,7 +66,7 @@ def check_ikuai_connection(cfg: dict) -> tuple:
             base_url=local_url,
             username=username,
             password=password,
-            session_timeout=monitor_cfg.get('session_timeout', 120)
+            session_timeout=cfg['ikuai'].get('session_timeout', 120)
         )
         
         if client.login():

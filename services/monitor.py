@@ -19,7 +19,7 @@ class MonitorService:
             base_url=ikuai_config.get('local_url', 'http://192.168.1.1'),
             username=ikuai_config.get('username', 'admin'),
             password=ikuai_config.get('password', ''),
-            session_timeout=monitor_config.get('session_timeout', 120)
+            session_timeout=ikuai_config.get('session_timeout', 120)
         )
         
         # 初始化告警服务
@@ -198,15 +198,18 @@ class MonitorService:
             from services.vendor import get_vendor_cached
             vendor = get_vendor_cached(mac)
             
+            # 设备名称：优先使用 hostname，否则使用 MAC 前8位
+            device_name = hostname or mac[:8].upper()
+            
             title = "🔐 安全告警 - 新设备接入"
             content = f"""## ⚠️ 新设备接入告警
 
 ### 📱 设备信息
 | 项目 | 详情 |
 |------|------|
+| 设备名称 | **{device_name}** |
 | MAC 地址 | `{mac}` |
 | IP 地址 | `{ip}` |
-| 主机名 | {hostname or '未知'} |
 | 厂商 | {vendor or '未知'} |
 
 ### ⏰ 接入时间
@@ -217,7 +220,7 @@ class MonitorService:
             
             success, msg = pusher.send(title, content, 'markdown')
             if success:
-                print(f"[推送] 新设备通知已发送: {mac}")
+                print(f"[推送] 新设备通知已发送: {device_name}")
             else:
                 print(f"[推送] 发送失败: {msg}")
         except Exception as e:
@@ -303,6 +306,9 @@ class MonitorService:
         # 批量获取所有设备今日在线时长（避免 N+1 查询）
         all_online_time = storage.get_all_today_online_time()
         
+        # 批量获取所有设备今日流量增量（避免 N+1 查询）
+        all_today_traffic = storage.get_all_today_traffic()
+        
         # 批量获取设备信息（避免循环查询）
         macs = [dev.get('mac', '').upper() for dev in online_devices]
         device_infos = storage.get_devices_by_macs(macs)
@@ -311,6 +317,7 @@ class MonitorService:
         for dev in online_devices:
             mac = dev.get('mac', '').upper()
             device_info = device_infos.get(mac, {})
+            today_traffic = all_today_traffic.get(mac, {'upload': 0, 'download': 0})
             
             devices.append({
                 'mac': mac,
@@ -320,8 +327,8 @@ class MonitorService:
                 'is_trusted': device_info.get('is_trusted', 0),
                 'upload_speed': dev.get('upload', 0),  # 实时上传速度
                 'download_speed': dev.get('download', 0),  # 实时下载速度
-                'total_upload': dev.get('total_up', 0),  # 累计上传
-                'total_download': dev.get('total_down', 0),  # 累计下载
+                'total_upload': today_traffic['upload'],  # 今日上传增量
+                'total_download': today_traffic['download'],  # 今日下载增量
                 'connections': dev.get('connect_num', 0),  # 连接数
                 'client_model': dev.get('client_model', ''),  # 设备型号
                 'client_device': dev.get('client_device', ''),  # 设备厂商

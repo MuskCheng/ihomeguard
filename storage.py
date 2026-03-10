@@ -256,6 +256,124 @@ def get_records_by_date(date: str) -> list:
         ''', (date,))]
 
 
+def get_device_today_traffic(mac: str) -> dict:
+    """获取设备今日流量增量
+    
+    计算方式：今日最后记录的累计值 - 基准值
+    基准值优先使用昨日最后记录，无则使用今日首条记录
+    
+    Returns:
+        {'upload': 今日上传增量, 'download': 今日下载增量}
+    """
+    from datetime import timedelta
+    
+    today = datetime.now().strftime('%Y-%m-%d')
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    with get_db() as conn:
+        # 获取今日最后记录
+        today_last = conn.execute('''
+            SELECT upload_bytes, download_bytes FROM online_records 
+            WHERE mac = ? AND date(recorded_at) = ?
+            ORDER BY recorded_at DESC LIMIT 1
+        ''', (mac.upper(), today)).fetchone()
+        
+        if not today_last:
+            return {'upload': 0, 'download': 0}
+        
+        # 获取昨日最后记录作为基准
+        yesterday_last = conn.execute('''
+            SELECT upload_bytes, download_bytes FROM online_records 
+            WHERE mac = ? AND date(recorded_at) = ?
+            ORDER BY recorded_at DESC LIMIT 1
+        ''', (mac.upper(), yesterday)).fetchone()
+        
+        if yesterday_last:
+            base_upload = yesterday_last['upload_bytes']
+            base_download = yesterday_last['download_bytes']
+        else:
+            # 无昨日记录，使用今日首条记录作为基准
+            today_first = conn.execute('''
+                SELECT upload_bytes, download_bytes FROM online_records 
+                WHERE mac = ? AND date(recorded_at) = ?
+                ORDER BY recorded_at ASC LIMIT 1
+            ''', (mac.upper(), today)).fetchone()
+            
+            if today_first:
+                base_upload = today_first['upload_bytes']
+                base_download = today_first['download_bytes']
+            else:
+                base_upload = 0
+                base_download = 0
+        
+        return {
+            'upload': max(0, today_last['upload_bytes'] - base_upload),
+            'download': max(0, today_last['download_bytes'] - base_download)
+        }
+
+
+def get_all_today_traffic() -> dict:
+    """批量获取所有设备今日流量增量
+    
+    计算方式与 get_device_today_traffic 相同，但一次性查询所有设备，效率更高
+    
+    Returns:
+        {mac: {'upload': 今日上传增量, 'download': 今日下载增量}}
+    """
+    from datetime import timedelta
+    
+    today = datetime.now().strftime('%Y-%m-%d')
+    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    
+    with get_db() as conn:
+        # 获取今日所有记录
+        today_records = conn.execute('''
+            SELECT mac, upload_bytes, download_bytes FROM online_records 
+            WHERE date(recorded_at) = ?
+            ORDER BY mac, recorded_at
+        ''', (today,)).fetchall()
+        
+        # 获取昨日所有记录
+        yesterday_records = conn.execute('''
+            SELECT mac, upload_bytes, download_bytes FROM online_records 
+            WHERE date(recorded_at) = ?
+            ORDER BY mac, recorded_at DESC
+        ''', (yesterday,)).fetchall()
+        
+        # 构建昨日最后记录字典
+        yesterday_last = {}
+        for r in yesterday_records:
+            mac = r['mac']
+            if mac not in yesterday_last:
+                yesterday_last[mac] = r
+        
+        # 构建今日首条和最后记录字典
+        today_first = {}
+        today_last = {}
+        for r in today_records:
+            mac = r['mac']
+            if mac not in today_first:
+                today_first[mac] = r
+            today_last[mac] = r
+        
+        # 计算增量
+        result = {}
+        for mac, last in today_last.items():
+            if mac in yesterday_last:
+                base = yesterday_last[mac]
+            elif mac in today_first:
+                base = today_first[mac]
+            else:
+                base = {'upload_bytes': 0, 'download_bytes': 0}
+            
+            result[mac] = {
+                'upload': max(0, last['upload_bytes'] - base['upload_bytes']),
+                'download': max(0, last['download_bytes'] - base['download_bytes'])
+            }
+        
+        return result
+
+
 # ========== 统计操作 ==========
 
 def save_daily_stats(date: str, total_upload: int, total_download: int,

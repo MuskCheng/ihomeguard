@@ -409,6 +409,7 @@ def get_config():
                 'local_url': cfg['ikuai'].get('local_url', ''),
                 'username': cfg['ikuai'].get('username', ''),
                 'password': '****' if cfg['ikuai'].get('password') else '',
+                'session_timeout': cfg['ikuai'].get('session_timeout', 120),
                 'connection_validated': cfg['ikuai'].get('connection_validated', False)
             },
             'push': {
@@ -565,7 +566,7 @@ def test_ikuai():
             base_url=data.get('local_url', ''),
             username=data.get('username', ''),
             password=password,
-            session_timeout=cfg.get('monitor', {}).get('session_timeout', 120)
+            session_timeout=cfg.get('ikuai', {}).get('session_timeout', 120)
         )
         
         if client.login():

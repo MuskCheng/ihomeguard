@@ -21,6 +21,30 @@ class AlerterService:
         self.upload_speed_threshold = config.get('upload_speed_threshold_kbps', 10240) * 1024
         self.download_speed_threshold = config.get('download_speed_threshold_kbps', 51200) * 1024
     
+    def _get_device_display_name(self, mac: str, device_info: dict = None) -> str:
+        """获取设备显示名称
+        
+        优先级：alias > hostname > MAC前8位
+        
+        Args:
+            mac: 设备MAC地址
+            device_info: 设备信息字典（可选，如果不传则从数据库查询）
+        
+        Returns:
+            设备显示名称
+        """
+        if device_info is None:
+            device_info = storage.get_device(mac)
+        
+        if device_info:
+            # 优先使用备注名，其次主机名
+            name = device_info.get('alias', '') or device_info.get('hostname', '')
+            if name:
+                return name
+        
+        # 最后使用MAC前8位
+        return mac[:8].upper() if mac else 'Unknown'
+    
     def check_all(self, online_devices: List[dict], collect_data: dict) -> List[dict]:
         """执行所有告警检测"""
         alerts = []
@@ -59,20 +83,20 @@ class AlerterService:
             device = storage.get_device(mac)
             if device and device.get('is_trusted'):
                 # 信任设备离线告警
-                alias = device.get('alias', '') or device.get('hostname', '') or mac[:8]
+                name = self._get_device_display_name(mac, device)
                 alert_id = storage.add_alert(
                     alert_type='device_offline',
                     severity='warning',
                     mac=mac,
-                    message=f'信任设备离线: {alias}'
+                    message=f'信任设备离线: {name}'
                 )
                 alerts.append({
                     'id': alert_id,
                     'type': 'device_offline',
                     'mac': mac,
-                    'message': f'信任设备离线: {alias}'
+                    'message': f'信任设备离线: {name}'
                 })
-                print(f"[告警] 信任设备离线: {alias} ({mac})")
+                print(f"[告警] 信任设备离线: {name} ({mac})")
         
         return alerts
     
@@ -89,7 +113,7 @@ class AlerterService:
             
             if total > threshold_bytes:
                 device = storage.get_device(mac)
-                alias = device.get('alias', '') if device else ''
+                name = self._get_device_display_name(mac, device)
                 
                 # 检查是否今天已告警过
                 today = datetime.now().strftime('%Y-%m-%d')
@@ -101,13 +125,13 @@ class AlerterService:
                         alert_type='high_traffic',
                         severity='warning',
                         mac=mac,
-                        message=f'{alias or mac[:8]} 流量超阈值: {total_gb:.2f} GB'
+                        message=f'{name} 流量超阈值: {total_gb:.2f} GB'
                     )
                     alerts.append({
                         'id': alert_id,
                         'type': 'high_traffic',
                         'mac': mac,
-                        'message': f'{alias or mac[:8]} 流量超阈值: {total_gb:.2f} GB'
+                        'message': f'{name} 流量超阈值: {total_gb:.2f} GB'
                     })
         
         return alerts
@@ -135,7 +159,7 @@ class AlerterService:
                         
                         if online_hours > threshold_hours:
                             device = storage.get_device(mac)
-                            alias = device.get('alias', '') if device else ''
+                            name = self._get_device_display_name(mac, device)
                             
                             # 检查是否今天已告警
                             today = datetime.now().strftime('%Y-%m-%d')
@@ -146,13 +170,13 @@ class AlerterService:
                                     alert_type='long_online',
                                     severity='info',
                                     mac=mac,
-                                    message=f'{alias or mac[:8]} 已在线 {online_hours:.1f} 小时'
+                                    message=f'{name} 已在线 {online_hours:.1f} 小时'
                                 )
                                 alerts.append({
                                     'id': alert_id,
                                     'type': 'long_online',
                                     'mac': mac,
-                                    'message': f'{alias or mac[:8]} 已在线 {online_hours:.1f} 小时'
+                                    'message': f'{name} 已在线 {online_hours:.1f} 小时'
                                 })
                 except Exception as e:
                     print(f"[告警] 检查长在线异常: {mac} - {e}")
@@ -171,7 +195,7 @@ class AlerterService:
             
             if connections > self.high_connection_threshold:
                 device = storage.get_device(mac)
-                alias = device.get('alias', '') if device else ''
+                name = self._get_device_display_name(mac, device)
                 
                 # 检查是否今天已告警
                 today = datetime.now().strftime('%Y-%m-%d')
@@ -182,13 +206,13 @@ class AlerterService:
                         alert_type='high_connections',
                         severity='warning',
                         mac=mac,
-                        message=f'{alias or mac[:8]} 连接数异常: {connections}'
+                        message=f'{name} 连接数异常: {connections}'
                     )
                     alerts.append({
                         'id': alert_id,
                         'type': 'high_connections',
                         'mac': mac,
-                        'message': f'{alias or mac[:8]} 连接数异常: {connections}'
+                        'message': f'{name} 连接数异常: {connections}'
                     })
         
         return alerts
@@ -216,7 +240,7 @@ class AlerterService:
             # 检查上传速度
             if upload_speed > self.upload_speed_threshold:
                 device = storage.get_device(mac)
-                alias = device.get('alias', '') if device else ''
+                name = self._get_device_display_name(mac, device)
 
                 # 检查是否最近10分钟已告警过
                 recent_alerts = storage.get_recent_alerts_by_type('high_upload_speed', mac, minutes=10)
@@ -226,19 +250,19 @@ class AlerterService:
                         alert_type='high_upload_speed',
                         severity='warning',
                         mac=mac,
-                        message=f'{alias or mac[:8]} 上传速度异常: {speed_mbps:.2f} MB/s'
+                        message=f'{name} 上传速度异常: {speed_mbps:.2f} MB/s'
                     )
                     alerts.append({
                         'id': alert_id,
                         'type': 'high_upload_speed',
                         'mac': mac,
-                        'message': f'{alias or mac[:8]} 上传速度异常: {speed_mbps:.2f} MB/s'
+                        'message': f'{name} 上传速度异常: {speed_mbps:.2f} MB/s'
                     })
 
             # 检查下载速度
             if download_speed > self.download_speed_threshold:
                 device = storage.get_device(mac)
-                alias = device.get('alias', '') if device else ''
+                name = self._get_device_display_name(mac, device)
 
                 recent_alerts = storage.get_recent_alerts_by_type('high_download_speed', mac, minutes=10)
                 if not recent_alerts:
@@ -247,13 +271,13 @@ class AlerterService:
                         alert_type='high_download_speed',
                         severity='warning',
                         mac=mac,
-                        message=f'{alias or mac[:8]} 下载速度异常: {speed_mbps:.2f} MB/s'
+                        message=f'{name} 下载速度异常: {speed_mbps:.2f} MB/s'
                     )
                     alerts.append({
                         'id': alert_id,
                         'type': 'high_download_speed',
                         'mac': mac,
-                        'message': f'{alias or mac[:8]} 下载速度异常: {speed_mbps:.2f} MB/s'
+                        'message': f'{name} 下载速度异常: {speed_mbps:.2f} MB/s'
                     })
 
         return alerts

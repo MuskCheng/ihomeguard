@@ -196,6 +196,7 @@ def get_default_config():
             "local_url": os.environ.get('IKUAI_URL', 'http://192.168.1.1'),
             "username": os.environ.get('IKUAI_USER', 'admin'),
             "password": os.environ.get('IKUAI_PASS', ''),
+            "session_timeout": 120,  # 会话超时时间（分钟），需与爱快系统账号配置一致
             "connection_validated": False
         },
         "push": {
@@ -267,7 +268,7 @@ def get_default_config():
             "enabled": True
         },
         "monitor": {
-            "collect_interval": 5,
+            "collect_interval": 10,
             "report_time": "07:00",
             "alert_new_device": True,
             "alert_startup": True,
@@ -276,7 +277,6 @@ def get_default_config():
             "long_online_hours": 24,
             "high_connection_threshold": 500,
             "total_connection_threshold": 1000,
-            "session_timeout": 120,
             "upload_speed_threshold_kbps": 10240,
             "download_speed_threshold_kbps": 51200
         },

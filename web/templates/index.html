@@ -2217,6 +2217,13 @@
                                     <span v-else>密码将被加密存储</span>
                                 </small>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>会话超时（分钟）</label>
+                                    <input type="number" class="form-control" v-model="config.ikuai.session_timeout" min="10" max="1440">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">与爱快系统账号配置保持一致</small>
+                                </div>
+                            </div>
                             <div class="form-actions">
                                 <button class="btn btn-primary" @click="testIkuai" :disabled="testingIkuai">
                                     <span v-if="testingIkuai" class="spinning">⏳</span>
@@ -2486,15 +2493,9 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>采集间隔（秒）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.collect_interval">
+                                    <input type="number" class="form-control" v-model="config.monitor.collect_interval" min="5" max="3600">
+                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">建议 10-60 秒</small>
                                 </div>
-                                <div class="form-group">
-                                    <label>会话超时（分钟）</label>
-                                    <input type="number" class="form-control" v-model="config.monitor.session_timeout" min="10" max="1440">
-                                    <small style="color: var(--text-muted); display: block; margin-top: 5px;">系统将自动保活会话</small>
-                                </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label>日报推送时间</label>
                                     <select class="form-control" v-model="config.monitor.report_time" style="max-width: 200px;">
@@ -2866,7 +2867,7 @@
                     alerts: [],
                     resolvingAll: false,
                     config: {
-                        ikuai: { local_url: '', username: '', password: '' },
+                        ikuai: { local_url: '', username: '', password: '', session_timeout: 120 },
                         push: {
                             enabled: true,
                             channels: {
@@ -2883,7 +2884,7 @@
                             }
                         },
                         pushme: { push_key: '', enabled: true, wecom_webhook: '', dingtalk_webhook: '', dingtalk_secret: '' },
-                                                            monitor: { collect_interval: 300, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, session_timeout: 120, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200, high_connection_threshold: 500, total_connection_threshold: 1000 },
+                                                            monitor: { collect_interval: 10, report_time: '07:00', alert_new_device: true, alert_offline: true, traffic_threshold_gb: 10, long_online_hours: 24, upload_speed_threshold_kbps: 10240, download_speed_threshold_kbps: 51200, high_connection_threshold: 500, total_connection_threshold: 1000 },
                         auth: { enabled: false }                    },
                     prediction: null,
                     pushChannel: 'pushme',
